@@ -27,8 +27,8 @@ can see in the sample report above.
 =head2 SECURITY CHECKS
 
 All checks recommended by the CIS Benchmark for PostgreSQL 16 are implemented
-but not only. Some additional tests (a dozen) that I have though about are
-marked with the "(HexaCLuster)" mention in the description.
+but not only. Some additional tests not part of the CIS document are marked with
+the "(*)" mention in the description.
 
 Here is the list all checks performed on a PostgreSQL cluster. Some must be
 checked manually but most of them are check automatically by the tool.
