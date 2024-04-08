@@ -100,8 +100,8 @@ sub _init
 	$self->{psql} .= " -h $self->{host}" if ($self->{host});
 	$self->{psql} .= " -p $self->{port}" if ($self->{port});
 	$self->{psql} .= " -d self->{database}" if ($self->{database});
-	# We want the default language for psql messages
-	$self->{psql} = 'LANG=C ' . $self->{psql};
+	# We want the default language for psql messages and no look at .psqlrc
+	$self->{psql} = 'LANG=C ' . $self->{psql} . ' -X';
 }
 
 ####
