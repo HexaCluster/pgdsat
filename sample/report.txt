@@ -1,0 +1,1037 @@
+POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
+
+################################################################################
+# Summary Table of security checks
+################################################################################
+
+1 - Installation and Patches
+1.1 - Ensure packages are obtained from authorized repositories => SUCCESS
+1.1.1 - PostgreSQL packages installed. (Manual)
+1.1.2 - Ensure packages are obtained from PGDG => SUCCESS
+1.2 - Ensure systemd Service Files Are Enabled => SUCCESS
+1.3 - Ensure Data Cluster Initialized Successfully => SUCCESS
+1.3.1 - Check initialization of the PGDATA => SUCCESS
+1.3.2 - Check version in PGDATA => SUCCESS
+1.3.3 - Ensure Data Cluster have checksum enabled => FAILURE
+1.3.4 - Ensure WALs and temporary files are not on the same partition as the PGDATA => FAILURE
+1.3.5 - Ensure that the PGDATA partition is encrypted (Manual)
+1.4 - Ensure PostgreSQL versions are up-to-date => FAILURE
+1.5 - Ensure unused PostgreSQL extensions are removed (Manual)
+2 - Directory and File Permissions
+2.1 - Ensure the file permissions mask is correct => FAILURE
+2.2 - Check permissions of PGDATA => SUCCESS
+2.3 - List content of PGDATA to check unwanted files and symlinks (Manual)
+2.4 - Check permissions of pg_hba.conf => SUCCESS
+2.5 - Check permissions on Unix Socket => FAILURE
+3 - Logging And Auditing
+3.1 - PostgreSQL Logging => SUCCESS
+3.1.1 - Logging Rationale => SUCCESS
+3.1.2 - Ensure the log destinations are set correctly => SUCCESS
+3.1.3 - Ensure the logging collector is enabled => FAILURE
+3.1.4 - Ensure the log file destination directory is set correctly => SUCCESS
+3.1.5 - Ensure the filename pattern for log files is set correctly (Manual)
+3.1.6 - Ensure the log file permissions are set correctly => SUCCESS
+3.1.7 - Ensure 'log_truncate_on_rotation' is enabled => SUCCESS
+3.1.8 - Ensure the maximum log file lifetime is set correctly (Manual)
+3.1.9 - Ensure the maximum log file size is set correctly (Manual)
+3.1.10 - Ensure the correct syslog facility is selected (Manual)
+3.1.11 - Ensure syslog messages are not suppressed => SUCCESS
+3.1.12 - Ensure syslog messages are not lost due to size => SUCCESS
+3.1.13 - Ensure the program name for PostgreSQL syslog messages is correct (Manual)
+3.1.14 - Ensure the correct messages are written to the server log => SUCCESS
+3.1.15 - Ensure the correct SQL statements generating errors are recorded => SUCCESS
+3.1.16 - Ensure 'debug_print_parse' is disabled => SUCCESS
+3.1.17 - Ensure 'debug_print_rewritten' is disabled => SUCCESS
+3.1.18 - Ensure 'debug_print_plan' is disabled => SUCCESS
+3.1.19 - Ensure 'debug_pretty_print' is enabled => SUCCESS
+3.1.20 - Ensure 'log_connections' is enabled => FAILURE
+3.1.21 - Ensure 'log_disconnections' is enabled => FAILURE
+3.1.22 - Ensure 'log_error_verbosity' is set correctly => FAILURE
+3.1.23 - Ensure 'log_hostname' is set correctly => SUCCESS
+3.1.24 - Ensure 'log_line_prefix' is set correctly => FAILURE
+3.1.25 - Ensure 'log_statement' is set correctly => FAILURE
+3.1.26 - Ensure 'log_timezone' is set correctly => FAILURE
+3.1.27 - Ensure that log_directory is outside the PGDATA => SUCCESS
+3.2 - Ensure the PostgreSQL Audit Extension (pgAudit) is enabled => SUCCESS
+4 - User Access and Authorization
+4.1 - Ensure sudo is configured correctly (Manual)
+4.2 - Ensure excessive administrative privileges are revoked => FAILURE
+4.3 - Ensure excessive function privileges are revoked (Manual)
+4.4 - Ensure excessive DML privileges are revoked (Manual)
+4.5 - Ensure Row Level Security (RLS) is configured correctly (Manual)
+4.6 - Ensure the set_user extension is installed (Manual) => FAILURE
+4.7 - Make use of predefined roles (Manual)
+5 - Connection and Login
+5.1 - Ensure login via "local" UNIX Domain Socket is configured correctly => FAILURE
+5.2 - Ensure login via "host" TCP/IP Socket is configured correctly => SUCCESS
+5.3 - Ensure Password Complexity is configured => SUCCESS
+5.4 - Ensure authentication timeout and delay are well configured => FAILURE
+5.5 - Ensure SSL is used for client connection => FAILURE
+5.6 - Ensure authorized Ip addresses ranges are not too large => SUCCESS
+5.7 - Ensure specific database and users are used => FAILURE
+5.8 - Ensure superusers are not allowed to connect remotely => SUCCESS
+5.9 - Ensure that 'password_encryption' is correctly set => SUCCESS
+6 - PostgreSQL Settings
+6.1 - Understanding attack vectors and runtime parameters
+6.2 - Ensure 'backend' runtime parameters are configured correctly => FAILURE
+6.3 - Ensure 'Postmaster' runtime parameters are configured correctly (Manual)
+6.4 - Ensure 'SIGHUP' runtime parameters are configured correctly (Manual)
+6.5 - Ensure 'Superuser' runtime parameters are configured correctly (Manual)
+6.6 - Ensure 'User' runtime parameters are configured correctly (Manual)
+6.7 - Ensure FIPS 140-2 OpenSSL cryptography is used => FAILURE
+6.8 - Ensure TLS is enabled and configured correctly => FAILURE
+6.9 - Ensure a cryptographic extension is installed => SUCCESS
+7 - Replication
+7.1 - Ensure a replication-only user is created and used for streaming replication => FAILURE
+7.2 - Ensure logging of replication commands is configured => FAILURE
+7.3 - Ensure base backups are configured and functional => SUCCESS
+7.4 - Ensure WAL archiving is configured and functional => FAILURE
+7.5 - Ensure streaming replication parameters are configured correctly => FAILURE
+8 - Special Configuration Considerations
+8.1 - Ensure PostgreSQL subdirectory locations are outside the data cluster => SUCCESS
+8.2 - Ensure the backup and restore tool, 'pgBackRest', is installed and configured => FAILURE
+8.3 - Ensure miscellaneous configuration settings are correct (Manual)
+
+
+################################################################################
+# Detailled security assessment
+################################################################################
+
+#--------------------------------------------------------------------------------
+# 1 - Installation and Patches
+#--------------------------------------------------------------------------------
+    # 1.1 - Ensure packages are obtained from authorized repositories
+    Identify and inspect configured repositories to ensure they are all valid and authorized sources of packages.
+
+        # 1.1.1 - PostgreSQL packages installed. (Manual)
+        Inspect installed package to ensure they are all valid and authorized packages.
+
+            DATA:  postgresql-11                                 11.22-2.pgdg22.04+1                     amd64        The World's Most Advanced Open Source Relational Database
+            DATA:  postgresql-12                                 12.18-1.pgdg22.04+1                     amd64        The World's Most Advanced Open Source Relational Database
+            DATA:  postgresql-13                                 13.14-1.pgdg22.04+1                     amd64        The World's Most Advanced Open Source Relational Database
+            DATA:  postgresql-14                                 14.11-1.pgdg22.04+1                     amd64        The World's Most Advanced Open Source Relational Database
+            DATA:  postgresql-14-hypopg                          1.4.0-2.pgdg22.04+1                     amd64        PostgreSQL extension adding support for hypothetical indexes.
+            DATA:  postgresql-14-postgis-3                       3.4.2+dfsg-1.pgdg22.04+1                amd64        Geographic objects support for PostgreSQL 14
+            DATA:  postgresql-14-postgis-3-scripts               3.4.2+dfsg-1.pgdg22.04+1                all          Geographic objects support for PostgreSQL 14 -- SQL scripts
+            DATA:  postgresql-15                                 15.6-1.pgdg22.04+1                      amd64        The World's Most Advanced Open Source Relational Database
+            DATA:  postgresql-15-citus-12.0                      12.0.1.citus-1                          amd64        sharding and distributed joins for PostgreSQL
+            DATA:  postgresql-15-postgis-3                       3.4.2+dfsg-1.pgdg22.04+1                amd64        Geographic objects support for PostgreSQL 15
+            DATA:  postgresql-15-postgis-3-scripts               3.4.2+dfsg-1.pgdg22.04+1                all          Geographic objects support for PostgreSQL 15 -- SQL scripts
+            DATA:  postgresql-15-tds-fdw                         2.0.3-3.pgdg22.04+1                     amd64        PostgreSQL foreign data wrapper for TDS databases
+            DATA:  postgresql-16                                 16.2-1.pgdg22.04+1                      amd64        The World's Most Advanced Open Source Relational Database
+            DATA:  postgresql-16-postgis-3                       3.4.2+dfsg-1.pgdg22.04+1                amd64        Geographic objects support for PostgreSQL 16
+            DATA:  postgresql-16-postgis-3-scripts               3.4.2+dfsg-1.pgdg22.04+1                all          Geographic objects support for PostgreSQL 16 -- SQL scripts
+            DATA:  postgresql-9.3                                9.3.25-9.pgdg22.04+3                    amd64        object-relational SQL database, version 9.3 server
+            DATA:  postgresql-9.4                                9.4.26-8.pgdg22.04+3                    amd64        object-relational SQL database, version 9.4 server
+
+        # 1.1.2 - Ensure packages are obtained from PGDG
+        PostgreSQL packages not supported by the PostgreSQL community are generaly not recommended.
+
+            SUCCESS: Test passed
+
+    # 1.2 - Ensure systemd Service Files Are Enabled
+    Check that the PostgreSQL systemd service is enabled. Enabling the systemd PostgreSQL service ensures that the database service is active when at system startup and reboot. This check is not done if Patroni is installed, in this case the start of PostgreSQL is handled by Patroni. (HexaCLuster)
+
+        SUCCESS: Test passed
+
+    # 1.3 - Ensure Data Cluster Initialized Successfully
+    PostgreSQL enforces ownership and permissions of the data cluster such that the data cluster cannot be accessed by other UNIX user accounts and the data cluster cannot owned by root.
+
+        # 1.3.1 - Check initialization of the PGDATA
+        The command initdb might have been run before starting PostgreSQL, verify that this is the case.
+
+            SUCCESS: Test passed
+
+        # 1.3.2 - Check version in PGDATA
+        PostgreSQL maintain a file called PG_VERSION in the base directory, verify that .
+
+            SUCCESS: Test passed
+
+        # 1.3.3 - Ensure Data Cluster have checksum enabled
+        When checksum are not enabled, silent data corruption can not be detected by PostgreSQL. Verify that they are enabled. (*)
+
+            CRITICAL: Checksum are not enabled in PGDATA /var/lib/postgresql/15/main.
+
+        # 1.3.4 - Ensure WALs and temporary files are not on the same partition as the PGDATA
+        The PostgreSQL cluster is organized to carry out specific tasks in subdirectories. For the purposes of performance, reliability, and security some of these subdirectories should be relocated outside the data cluster. (*)
+
+            WARNING: Subdirectory pg_wal is not on a separate partition than the PGDATA .
+
+            WARNING: Subdirectory for temporary file is not on a separate partition than the PGDATA.
+
+        # 1.3.5 - Ensure that the PGDATA partition is encrypted (Manual)
+        PostgreSQL storage encryption can be performed at the file system level or the block level, for example using LUKS. This mechanism prevents unencrypted data from being read from the drives if the drives or the entire computer is stolen. This does not protect against attacks while the file system is mounted, because when mounted, the operating system provides an unencrypted view of the data. (*)
+
+            DATA: NAME                  FSTYPE      FSVER    LABEL UUID                                   FSAVAIL FSUSE% MOUNTPOINTS
+            DATA: nvme0n1                                                                                                
+            DATA: ├─nvme0n1p1           vfat        FAT32          9562-6409                               449,5M    12% /boot/efi
+            DATA: ├─nvme0n1p2           ext4        1.0            b094a4f8-e122-4507-aef2-b840488970a9      1,1G    27% /boot
+            DATA: └─nvme0n1p3           crypto_LUKS 2              7942f063-81b2-412f-a9d7-9b085d6635b2                  
+            DATA:   └─nvme0n1p3_crypt   LVM2_member LVM2 001       6v9nXI-HLMs-2b9u-Tbqx-hw51-JAsl-RjaiHL                
+            DATA:     ├─vgubuntu-root   ext4        1.0            dc73afb5-86bd-4405-aa11-576f1f023fcb     21,6G    90% /var/snap/firefox/common/host-hunspell
+            DATA:     │                                                                                                  /
+            DATA:     └─vgubuntu-swap_1 swap        1              e5cdf1a9-0ed6-4573-9c4b-8e8e1f918ece                  [SWAP]
+
+    # 1.4 - Ensure PostgreSQL versions are up-to-date
+        CRITICAL: This PostgreSQL version, v15.1, is not the last one of this branch (15.6)
+
+        INFO: See <a href="https://why-upgrade.depesz.com/show?from=15.1&to=15.6" target="_new">Why upgrade</a>.
+
+    # 1.5 - Ensure unused PostgreSQL extensions are removed (Manual)
+        # 1.5.1 - contrib_regression
+            DATA: Name|Version|Schema|Description
+            DATA: credcheck|2.6.0|public|credcheck - postgresql plain text credential checker
+            DATA: pg_trgm|1.6|public|text similarity measurement and index searching based on trigrams
+            DATA: pgtt|3.1.0|pgtt_schema|Extension to add Global Temporary Tables feature to PostgreSQL
+            DATA: plpgsql|1.0|pg_catalog|PL/pgSQL procedural language
+            DATA: plpgsql_check|2.7|public|extended check for plpgsql functions
+
+        # 1.5.2 - gilles
+            DATA: Name|Version|Schema|Description
+            DATA: btree_gist|1.7|public|support for indexing common datatypes in GiST
+            DATA: oracle_fdw|1.2|public|foreign data wrapper for Oracle access
+            DATA: orafce|4.3|public|Functions and operators that emulate a subset of functions and packages from the Oracle RDBMS
+            DATA: pg_stat_statements|1.10|public|track planning and execution statistics of all SQL statements executed
+            DATA: pg_subxact_counters|1.0|public|
+            DATA: pg_wait_sampling|1.1|public|sampling based statistics of wait events
+            DATA: pgcrypto|1.3|public|cryptographic functions
+            DATA: plperl|1.0|pg_catalog|PL/Perl procedural language
+            DATA: plperlu|1.0|pg_catalog|PL/PerlU untrusted procedural language
+            DATA: plpgsql|1.0|pg_catalog|PL/pgSQL procedural language
+            DATA: plpgsql_enc|2.0|pg_catalog|Encrypted PL/pgSQL procedural language
+            DATA: postgis|3.4.2|public|PostGIS geometry and geography spatial types and functions
+            DATA: postgres_fdw|1.1|public|foreign-data wrapper for remote PostgreSQL servers
+
+#--------------------------------------------------------------------------------
+# 2 - Directory and File Permissions
+#--------------------------------------------------------------------------------
+    # 2.1 - Ensure the file permissions mask is correct
+    The postgres system user should have a restrictive umask for file creation so that other UNIX users can not look at anything.
+
+        CRITICAL: The umask must be 0077 or more restrictive for the postgres user. Currently it is set to 0002.
+
+    # 2.2 - Check permissions of PGDATA
+    The data cluster Unix permissions must be 0700 (*).
+
+        SUCCESS: Test passed
+
+    # 2.3 - List content of PGDATA to check unwanted files and symlinks (Manual)
+    The content of the PGDATA must be generated by PostgreSQL itself except custom configuration files. (*).
+
+        DATA: total 96
+        DATA: drwx------ 20 postgres postgres 4096 avril  4 12:03 .
+        DATA: drwxr-xr-x  3 postgres postgres 4096 nov.   6  2022 ..
+        DATA: drwx------ 30 postgres postgres 4096 mars  26 23:39 base
+        DATA: drwx------  2 postgres postgres 4096 avril  8 14:36 global
+        DATA: drwx------  2 postgres postgres 4096 mars  12 10:46 log
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_commit_ts
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_dynshmem
+        DATA: drwx------  4 postgres postgres 4096 avril  8 14:59 pg_logical
+        DATA: drwx------  4 postgres postgres 4096 nov.   6  2022 pg_multixact
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_notify
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_replslot
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_serial
+        DATA: drwx------  2 postgres postgres 4096 mars  14 20:27 pg_snapshots
+        DATA: drwx------  2 postgres postgres 4096 avril  4 12:03 pg_stat
+        DATA: drwx------  2 postgres postgres 4096 févr. 16 23:32 pg_stat_tmp
+        DATA: drwx------  2 postgres postgres 4096 déc.   4 18:14 pg_subtrans
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_tblspc
+        DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_twophase
+        DATA: -rw-------  1 postgres postgres    3 nov.   6  2022 PG_VERSION
+        DATA: drwx------  3 postgres postgres 4096 mars  26 23:47 pg_wal
+        DATA: drwx------  2 postgres postgres 4096 déc.   1 19:32 pg_xact
+        DATA: -rw-------  1 postgres postgres   88 nov.   6  2022 postgresql.auto.conf
+        DATA: -rw-------  1 postgres postgres  130 avril  4 12:03 postmaster.opts
+        DATA: -rw-------  1 postgres postgres  100 avril  4 12:03 postmaster.pid
+
+    # 2.4 - Check permissions of pg_hba.conf
+    The pg_hba.conf UNIX permission must be 0640 or 0600, especially when it is stored outside the PGDATA (*).
+
+        SUCCESS: Test passed
+
+    # 2.5 - Check permissions on Unix Socket
+    The default permissions are 0777, meaning anyone can connect. Reasonable alternatives are 0770 (only user and group, see also unix_socket_group) and 0700 (only user). (*).
+
+        WARNING: Permission on the Unix socket should be more restrictive, for example: 0770 or 0700. Currently it is set to 0777.
+
+#--------------------------------------------------------------------------------
+# 3 - Logging And Auditing
+#--------------------------------------------------------------------------------
+    # 3.1 - PostgreSQL Logging
+    This section provides guidance with respect to PostgreSQL's logging behavior as it applies to security and auditing.
+
+        # 3.1.1 - Logging Rationale
+        Having an audit trail is an important feature of any relational database system. You want enough detail to describe when an event of interest has started and stopped, what the event is/was, the event's cause, and what the event did/is doing to the system. Ideally, the logged information is in a format permitting further analysis giving us new perspectives and insight.
+
+        # 3.1.2 - Ensure the log destinations are set correctly
+        If log_destination is not set, then any log messages generated by the core
+PostgreSQL processes will be lost.
+
+            SUCCESS: Test passed
+
+        # 3.1.3 - Ensure the logging collector is enabled
+        The logging collector approach is often more useful than logging to syslog, since some types of messages might not appear in syslog output. One common example is dynamic-linker failure message; another may be error messages produced by scripts such as archive_command.
+
+            CRITICAL: Setting 'logging_collector' must be enabled when 'log_destination' is not set to syslog, logging will be lost.
+
+        # 3.1.4 - Ensure the log file destination directory is set correctly
+        If log_directory is not set, it is interpreted as the absolute path '/' and PostgreSQL will attempt to write its logs there
+
+            SUCCESS: Test passed
+
+        # 3.1.5 - Ensure the filename pattern for log files is set correctly (Manual)
+        If log_filename is not set, then the value of log_directory is appended to an empty string and PostgreSQL will fail to start as it will try to write to a directory instead of a file.
+
+            SUCCESS: Test passed
+
+        # 3.1.6 - Ensure the log file permissions are set correctly
+        Log files often contain sensitive data. Allowing unnecessary access to log files may inadvertently expose sensitive data to unauthorized personnel.
+
+            SUCCESS: Test passed
+
+        # 3.1.7 - Ensure 'log_truncate_on_rotation' is enabled
+        If this setting is disabled, pre-existing log files will be appended to if log_filename is configured in such a way that static or recurring names are generated.
+
+            SUCCESS: Test passed
+
+        # 3.1.8 - Ensure the maximum log file lifetime is set correctly (Manual)
+        Current best practices advise log rotation at least daily, but your organization's logging policy should dictate your rotation schedule.
+
+            SUCCESS: Test passed
+
+        # 3.1.9 - Ensure the maximum log file size is set correctly (Manual)
+        If this is set to zero, the size-triggered creation of new log files is disabled. This will prevent automatic log file rotation when files become too large, which could put log data at increased risk of loss (unless age-based rotation is configured).
+
+            SUCCESS: Test passed
+
+        # 3.1.10 - Ensure the correct syslog facility is selected (Manual)
+        If not set to the appropriate facility, the PostgreSQL log messages may be intermingled with other applications log messages, incorrectly routed, or potentially dropped (depending on your syslog configuration).
+
+            SUCCESS: Test passed
+
+        # 3.1.11 - Ensure syslog messages are not suppressed
+        If disabled, messages sent to Syslog could be suppressed and not logged. While a message is emitted stating that a given message was repeated and suppressed, the timestamp associated with these suppressed messages is lost, potentially damaging the recreation of an incident timeline.
+
+            SUCCESS: Test passed
+
+        # 3.1.12 - Ensure syslog messages are not lost due to size
+        Depending on the Syslog server in use, log messages exceeding 1024 bytes may be lost or, potentially, cause the Syslog server processes to abort.
+
+            SUCCESS: Test passed
+
+        # 3.1.13 - Ensure the program name for PostgreSQL syslog messages is correct (Manual)
+        If this is not set correctly, it may be difficult or impossible to distinguish PostgreSQL messages from other messages in Syslog logs.
+
+            SUCCESS: Test passed
+
+        # 3.1.14 - Ensure the correct messages are written to the server log
+        If this is not set to the correct value, too many or too few messages may be written to the server log.
+
+            SUCCESS: Test passed
+
+        # 3.1.15 - Ensure the correct SQL statements generating errors are recorded
+        If this is not set to the correct value, too many erring or too few erring SQL statements may be written to the server log.
+
+            SUCCESS: Test passed
+
+        # 3.1.16 - Ensure 'debug_print_parse' is disabled
+        Enabling any of the DEBUG printing variables may cause the logging of sensitive information that would otherwise be omitted based on the configuration of the other logging settings.
+
+            SUCCESS: Test passed
+
+        # 3.1.17 - Ensure 'debug_print_rewritten' is disabled
+        Enabling any of the DEBUG printing variables may cause the logging of sensitive information that would otherwise be omitted based on the configuration of the other logging settings.
+
+            SUCCESS: Test passed
+
+        # 3.1.18 - Ensure 'debug_print_plan' is disabled
+        Enabling any of the DEBUG printing variables may cause the logging of sensitive information that would otherwise be omitted based on the configuration of the other logging settings.
+
+            SUCCESS: Test passed
+
+        # 3.1.19 - Ensure 'debug_pretty_print' is enabled
+        If this setting is disabled, the "compact" format is used instead, significantly reducing the readability of the DEBUG statement log messages.
+
+            SUCCESS: Test passed
+
+        # 3.1.20 - Ensure 'log_connections' is enabled
+        PostgreSQL does not maintain an internal record of attempted connections to the database for later auditing. It is only by enabling the logging of these attempts that one can determine if unexpected attempts are being made.
+
+            WARNING: Setting 'log_connections' should be enabled.
+
+        # 3.1.21 - Ensure 'log_disconnections' is enabled
+        PostgreSQL does not maintain the beginning or ending of a connection internally for later review. It is only by enabling the logging of these that one can examine connections for failed attempts, 'over long' duration, or other anomalies.
+
+            WARNING: Setting 'log_disconnections' should be enabled.
+
+        # 3.1.22 - Ensure 'log_error_verbosity' is set correctly
+        If this is not set to the correct value, too many details or too few details may be logged.
+
+            WARNING: Setting 'log_error_verbosity' should be set to 'verbose'.
+
+        # 3.1.23 - Ensure 'log_hostname' is set correctly
+        Depending on your hostname resolution setup, enabling this setting might impose a non-negligible performance penalty. Additionally, the IP addresses that are logged can be resolved to their DNS names when reviewing the logs (unless dynamic hostnames are being used as part of your DHCP setup).
+
+            SUCCESS: Test passed
+
+        # 3.1.24 - Ensure 'log_line_prefix' is set correctly
+        Properly setting log_line_prefix allows for adding additional information to each log entry (such as the user, or the database). Said information may then be of use in auditing or security reviews. The prefix should at least include '%m [%p]: db=%d,user=%u,app=%a,client=%h ' (for logging to stderr) and for syslog logging, the prefix should include 'user=%u,db=%d,app=%a,client=%h '.
+
+            WARNING: Setting 'log_line_prefix' should containt at least '%m [%p]: db=%d,user=%u,app=%a,client=%h ' (for stderr logging). For syslog logging, the prefix should include 'user=%u,db=%d,app=%a,client=%h '.
+
+        # 3.1.25 - Ensure 'log_statement' is set correctly
+        Setting log_statement to align with your organization's security and logging policies facilitates later auditing and review of database activities.
+
+            WARNING: Setting 'log_statement' should at least be set to 'ddl'.
+
+        # 3.1.26 - Ensure 'log_timezone' is set correctly
+        Log entry timestamps should be configured for an appropriate time zone as defined by your organization's logging policy to ensure a lack of confusion around when a logged event occurred.  Note that this setting affects only the timestamps present in the logs.
+
+            WARNING: Setting 'log_timezone' should be set to 'GMT' or 'UTC'.
+
+        # 3.1.27 - Ensure that log_directory is outside the PGDATA
+        Best practice is to not write PostgreSQL logs into the PGDATA for performances reason and disk space use. (*)
+
+            SUCCESS: Test passed
+
+    # 3.2 - Ensure the PostgreSQL Audit Extension (pgAudit) is enabled
+    The PostgreSQL Audit Extension (pgAudit) provides detailed session and/or object audit logging via the standard PostgreSQL logging facility. The goal of pgAudit is to provide PostgreSQL users with the capability to produce audit logs often required to comply with government, financial, or ISO certifications.
+
+        WARNING: PostgreSQL extension pgAudit should be used.
+
+#--------------------------------------------------------------------------------
+# 4 - User Access and Authorization
+#--------------------------------------------------------------------------------
+These authorizations must be structured to block unauthorized use and/or corruption of vital data and services by setting restrictions on user capabilities.
+
+    # 4.2 - Ensure excessive administrative privileges are revoked
+    By not restricting global administrative commands to superusers only, regular users granted excessive privileges may execute administrative commands with unintended and undesirable results.
+
+        WARNING: There are more than one PostgreSQL superuser.
+
+        DATA: Role|Attributs|Description
+        DATA: gilles|Superuser|
+        DATA: postgres|Superuser, Create role, Create DB, Replication, Bypass RLS|
+
+    # 4.3 - Ensure excessive function privileges are revoked (Manual)
+    Functions in PostgreSQL can be created with the SECURITY DEFINER option. When SECURITY DEFINER functions are executed by a user, said function is run with the privileges of the user who created it, not the user who is running it. List of the functions with SECURITY DEFINER option not associated to an extension, per database.
+
+        # 4.3.1 - contrib_regression
+            DATA: oid|nspname|proname|rolname|prosecdef|proconfig|proacl
+            DATA: 511629|public|add|gilles|t||
+
+        # 4.3.2 - gilles
+            DATA: oid|nspname|proname|rolname|prosecdef|proconfig|proacl
+            DATA: 511628|public|add|gilles|t||
+
+    # 4.4 - Ensure excessive DML privileges are revoked (Manual)
+    Excessive DML grants can lead to unprivileged users changing or deleting information without proper authorization.
+
+        # 4.4.1 - contrib_regression
+            DATA: schema|table|user|select|insert|update|delete
+            DATA: pgtt_schema|test_tt|dump_anon|t|t|t|t
+            DATA: pgtt_schema|test_tt|test|t|t|t|t
+            DATA: pgtt_schema|test_tt|oraweb|t|t|t|t
+            DATA: pgtt_schema|test_tt|testuser|t|t|t|t
+            DATA: pgtt_schema|test_tt|toto|t|t|t|t
+            DATA: pgtt_schema|test_tt|hr|t|t|t|t
+            DATA: pgtt_schema|test_tt|u01|t|t|t|t
+            DATA: pgtt_schema|test_tt|user|t|t|t|t
+            DATA: pgtt_schema|test_tt|dolibarr|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|dump_anon|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|test|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|oraweb|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|testuser|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|toto|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|hr|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|u01|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|user|t|t|t|t
+            DATA: pgtt_schema|pg_global_temp_tables|dolibarr|t|t|t|t
+            DATA: pgtt_schema|test|dump_anon|t|t|t|t
+            DATA: pgtt_schema|test|test|t|t|t|t
+            DATA: pgtt_schema|test|oraweb|t|t|t|t
+            DATA: pgtt_schema|test|testuser|t|t|t|t
+            DATA: pgtt_schema|test|toto|t|t|t|t
+            DATA: pgtt_schema|test|hr|t|t|t|t
+            DATA: pgtt_schema|test|u01|t|t|t|t
+            DATA: pgtt_schema|test|user|t|t|t|t
+            DATA: pgtt_schema|test|dolibarr|t|t|t|t
+
+        # 4.4.2 - gilles
+            DATA: schema|table|user|select|insert|update|delete
+            DATA: public|t3|dump_anon|t|f|f|f
+            DATA: public|customer|dump_anon|t|f|f|f
+            DATA: public|spatial_ref_sys|dump_anon|t|f|f|f
+            DATA: public|spatial_ref_sys|test|t|f|f|f
+            DATA: public|spatial_ref_sys|oraweb|t|f|f|f
+            DATA: public|spatial_ref_sys|testuser|t|f|f|f
+            DATA: public|spatial_ref_sys|toto|t|f|f|f
+            DATA: public|spatial_ref_sys|hr|t|f|f|f
+            DATA: public|spatial_ref_sys|u01|t|f|f|f
+            DATA: public|spatial_ref_sys|user|t|f|f|f
+            DATA: public|spatial_ref_sys|dolibarr|t|f|f|f
+            DATA: public|tab|dump_anon|t|f|f|f
+            DATA: utl_file|utl_file_dir|dump_anon|t|f|f|f
+            DATA: utl_file|utl_file_dir|test|t|f|f|f
+            DATA: utl_file|utl_file_dir|oraweb|t|f|f|f
+            DATA: utl_file|utl_file_dir|testuser|t|f|f|f
+            DATA: utl_file|utl_file_dir|toto|t|f|f|f
+            DATA: utl_file|utl_file_dir|hr|t|f|f|f
+            DATA: utl_file|utl_file_dir|u01|t|f|f|f
+            DATA: utl_file|utl_file_dir|user|t|f|f|f
+            DATA: utl_file|utl_file_dir|dolibarr|t|f|f|f
+
+    # 4.5 - Ensure Row Level Security (RLS) is configured correctly (Manual)
+    If RLS policies and privileges are not configured correctly, users could perform actions on tables that they are not authorized to perform, such as inserting, updating, or deleting rows. List tables with RLS enabled.
+
+        SUCCESS: Test passed
+
+    # 4.6 - Ensure the set_user extension is installed (Manual)
+    Even when reducing and limiting the access to the superuser role, it is still difficult to determine who accessed the superuser role and what actions were taken using that role. As such, it is ideal to prevent anyone from logging in as the superuser and forcing them to escalate their role. The set_user extension allows for this setup.
+
+        WARNING: PostgreSQL extension set_user should be used.
+
+        DATA: rolname|roloid|rolcanlogin|rolsuper|rolparents
+        DATA: gilles|16389|t|t|{}
+        DATA: postgres|10|t|t|{}
+
+    # 4.7 - Make use of predefined roles (Manual)
+    In keeping with the principle of least privilege, judicious use of the PostgreSQL predefined roles can greatly limit the access to privileged, or superuser, access.
+
+        DATA: rolname|roloid|rolcanlogin|rolsuper|rolparents
+        DATA: pg_monitor|3373|f|f|{pg_read_all_settings}
+        DATA: pg_monitor|3373|f|f|{pg_read_all_stats}
+        DATA: pg_monitor|3373|f|f|{pg_stat_scan_tables}
+
+#--------------------------------------------------------------------------------
+# 5 - Connection and Login
+#--------------------------------------------------------------------------------
+The restrictions on client/user connections to the PostgreSQL database blocks unauthorized access to data and services by setting access rules. These security measures help to ensure that successful logins cannot be easily made through brute-force password attacks, replaying the password hash, or intuited by clever social engineering exploits.
+
+    # 5.1 - Ensure login via "local" UNIX Domain Socket is configured correctly
+    A remote host login, via SSH, is arguably the most secure means of remotely accessing and administering the PostgreSQL server. Once connected to the PostgreSQL server, using the psql client, via UNIX DOMAIN SOCKETS, while using the peer authentication method is the most secure mechanism available for local database connections.
+
+        CRITICAL: The use of the "trust" authentication method must not be used. See line 96 in file /etc/postgresql/15/main/pg_hba.conf.
+
+        DATA: local   all             all                                     trust
+
+        INFO: Use peer or any of the external authentication method (gss, sspi, pam, ldap, radius or cert) instead.
+
+    # 5.2 - Ensure login via "host" TCP/IP Socket is configured correctly
+    A large number of authentication methods are available for hosts connecting using TCP/IP sockets. Methods trust, password, and ident are not to be used for remote logins. Method md5 used to be the most popular and can be used in both encrypted and unencrypted sessions, however, it is vulnerable to packet replay attacks. It is recommended that scram-sha-256 be used instead of md5. Use of the gss, sspi, pam, ldap, radius, and cert methods are dependent upon the availability of external authenticating processes/services and thus are not covered here.
+
+    # 5.3 - Ensure Password Complexity is configured
+    Having strong password management for your locally-authenticated PostgreSQL accounts will protect against attackers' brute force techniques. This is important especially if external authentication is not possible to implement due to application requirements or restrictions.
+
+        SUCCESS: Test passed
+
+    # 5.4 - Ensure authentication timeout and delay are well configured
+    Authentication timeout is the maximum amount of time allowed to complete client authentication. If a would-be client has not completed the authentication protocol in this much time, the server closes the connection. This prevents hung clients from occupying a connection indefinitely. Authentication delay causes the server to pause briefly before reporting authentication failure, to make brute-force attacks on database passwords more difficult. (*)
+
+        WARNING: You should add an authentication failure delay to prevent brute force attack. See PostgreSQL extension credcheck or auth_delay.
+
+    # 5.5 - Ensure SSL is used for client connection
+    All remote client connection should be encrypted and non encrypted connexion  should be reject to not permit data sniffing on the network. (*)
+
+        CRITICAL: Use of ssl encryption for all remote connection should be used, see "hostssl" and "hostgssenc" connection type.
+
+    # 5.6 - Ensure authorized Ip addresses ranges are not too large
+    Allowing a too large range of Ip addresses to connect to PostgreSQL cluster multiply the risks unnecessarily. (*)
+
+    # 5.7 - Ensure specific database and users are used
+    The keyword "all" in the database and user part of the pg_hba.conf rules can allow any user to connect to any database, it is recommended to restrict the connection to specific user and database. (*)
+
+        WARNING: You should be more specific and give the database and users allowed to connect, not "all". See line scram-sha-256 in file 98.
+
+        DATA: host    all             all             127.0.0.1/32            scram-sha-256
+
+        WARNING: You should be more specific and give the database and users allowed to connect, not "all". See line scram-sha-256 in file 99.
+
+        DATA: host    all             all             172.18.0.3/32           scram-sha-256
+
+        WARNING: You should be more specific and give the database and users allowed to connect, not "all". See line scram-sha-256 in file 101.
+
+        DATA: host    all             all             ::1/128                 scram-sha-256
+
+        WARNING: You should be more specific and give the database and users allowed to connect, not "all". See line scram-sha-256 in file 105.
+
+        DATA: host    replication     all             127.0.0.1/32            scram-sha-256
+
+        WARNING: You should be more specific and give the database and users allowed to connect, not "all". See line scram-sha-256 in file 106.
+
+        DATA: host    replication     all             ::1/128                 scram-sha-256
+
+    # 5.8 - Ensure superusers are not allowed to connect remotely
+    Allowing a PostgreSQL superuser to connect to a database from a remote host is dangerous, best is to only allow the superuser(s) to connect locally with a peer authentication. If some advanced privileges are required, best is to use the PostgreSQL predefined roles. (*)
+
+        SUCCESS: Test passed
+
+    # 5.9 - Ensure that 'password_encryption' is correctly set
+    PostgreSQL allow to set password encryption, default is now 'scram-sha-256' but it can be set to 'md5' which is insecure. (*)
+
+        SUCCESS: Test passed
+
+#--------------------------------------------------------------------------------
+# 6 - PostgreSQL Settings
+#--------------------------------------------------------------------------------
+    # 6.2 - Ensure 'backend' runtime parameters are configured correctly
+    A denial of service is possible by denying the use of indexes and by slowing down client access to an unreasonable level. Unsanctioned behavior can be introduced by introducing rogue libraries which can then be called in a database session. Logging can be altered and obfuscated inhibiting root cause analysis. All changes made on this level will affect the overall behavior of the server. These changes can only be affected by a server restart after the parameters have been altered in the configuration files.
+
+        CRITICAL: Setting 'log_connections' must be enabled.
+
+        CRITICAL: Setting 'log_disconnections' must be enabled.
+
+    # 6.3 - Ensure 'Postmaster' runtime parameters are configured correctly (Manual)
+    The postmaster process is the supervisory process that assigns a backend process to an incoming client connection. The postmaster manages key runtime parameters that are either shared by all backend connections or needed by the postmaster process itself to run. The following parameters can only be set at server start by the owner of the PostgreSQL server process and cluster, typically the UNIX user account postgres.  Therefore, all exploits require the successful compromise of either that UNIX account or the postgres superuser account itself.
+
+        DATA: name|setting
+        DATA: archive_mode|off
+        DATA: autovacuum_freeze_max_age|200000000
+        DATA: autovacuum_max_workers|3
+        DATA: autovacuum_multixact_freeze_max_age|400000000
+        DATA: bonjour|off
+        DATA: bonjour_name|
+        DATA: cluster_name|15/main
+        DATA: config_file|/etc/postgresql/15/main/postgresql.conf
+        DATA: credcheck.auth_failure_cache_size|1024
+        DATA: credcheck.history_max_size|65535
+        DATA: data_directory|/var/lib/postgresql/15/main
+        DATA: data_sync_retry|off
+        DATA: dynamic_shared_memory_type|posix
+        DATA: event_source|PostgreSQL
+        DATA: external_pid_file|/var/run/postgresql/15-main.pid
+        DATA: hba_file|/etc/postgresql/15/main/pg_hba.conf
+        DATA: hot_standby|on
+        DATA: huge_pages|try
+        DATA: huge_page_size|0
+        DATA: ident_file|/etc/postgresql/15/main/pg_ident.conf
+        DATA: ignore_invalid_pages|off
+        DATA: jit_provider|llvmjit
+        DATA: listen_addresses|*
+        DATA: logging_collector|off
+        DATA: max_connections|100
+        DATA: max_files_per_process|1000
+        DATA: max_locks_per_transaction|64
+        DATA: max_logical_replication_workers|4
+        DATA: max_pred_locks_per_transaction|64
+        DATA: max_prepared_transactions|0
+        DATA: max_replication_slots|10
+        DATA: max_wal_senders|10
+        DATA: max_worker_processes|8
+        DATA: min_dynamic_shared_memory|0
+        DATA: old_snapshot_threshold|-1
+        DATA: port|5432
+        DATA: recovery_target|
+        DATA: recovery_target_action|pause
+        DATA: recovery_target_inclusive|on
+        DATA: recovery_target_lsn|
+        DATA: recovery_target_name|
+        DATA: recovery_target_time|
+        DATA: recovery_target_timeline|latest
+        DATA: recovery_target_xid|
+        DATA: shared_buffers|16384
+        DATA: shared_memory_type|mmap
+        DATA: shared_preload_libraries|credcheck
+        DATA: superuser_reserved_connections|3
+        DATA: track_activity_query_size|1024
+        DATA: track_commit_timestamp|off
+        DATA: unix_socket_directories|/var/run/postgresql
+        DATA: unix_socket_group|
+        DATA: unix_socket_permissions|0777
+        DATA: wal_buffers|512
+        DATA: wal_decode_buffer_size|524288
+        DATA: wal_level|replica
+        DATA: wal_log_hints|off
+
+    # 6.4 - Ensure 'SIGHUP' runtime parameters are configured correctly (Manual)
+    In order to define server behavior and optimize server performance, the server's superuser has the privilege of setting these parameters which are found in the configuration files postgresql.conf and pg_hba.conf. Alternatively, those parameters found in postgresql.conf can also be changed using a server login session and executing the SQL command ALTER SYSTEM which writes its changes in the configuration file postgresql.auto.conf. All changes made on this level will affect the overall behavior of the server. These changes can be effected by editing the PostgreSQL configuration files and by either executing a server SIGHUP from the command line or, as superuser postgres, executing the SQL command select pg_reload_conf(). A denial of service is possible by the over-allocating of limited resources, such as RAM. Data can be corrupted by allowing damaged pages to load or by changing parameters to reinterpret values in an unexpected fashion, e.g. changing the time zone. Client messages can be altered in such a way as to interfere with the application logic. Logging can be altered and obfuscated inhibiting root cause analysis.
+
+        DATA: name|setting
+        DATA: archive_cleanup_command|
+        DATA: archive_command|(disabled)
+        DATA: archive_library|
+        DATA: archive_timeout|0
+        DATA: authentication_timeout|60
+        DATA: autovacuum|on
+        DATA: autovacuum_analyze_scale_factor|0.1
+        DATA: autovacuum_analyze_threshold|50
+        DATA: autovacuum_naptime|60
+        DATA: autovacuum_vacuum_cost_delay|2
+        DATA: autovacuum_vacuum_cost_limit|-1
+        DATA: autovacuum_vacuum_insert_scale_factor|0.2
+        DATA: autovacuum_vacuum_insert_threshold|1000
+        DATA: autovacuum_vacuum_scale_factor|0.2
+        DATA: autovacuum_vacuum_threshold|50
+        DATA: autovacuum_work_mem|-1
+        DATA: bgwriter_delay|200
+        DATA: bgwriter_flush_after|64
+        DATA: bgwriter_lru_maxpages|100
+        DATA: bgwriter_lru_multiplier|2
+        DATA: checkpoint_completion_target|0.9
+        DATA: checkpoint_flush_after|32
+        DATA: checkpoint_timeout|300
+        DATA: checkpoint_warning|30
+        DATA: credcheck.auth_delay_ms|0
+        DATA: credcheck.reset_superuser|off
+        DATA: db_user_namespace|off
+        DATA: fsync|on
+        DATA: full_page_writes|on
+        DATA: hot_standby_feedback|off
+        DATA: krb_caseins_users|off
+        DATA: krb_server_keyfile|FILE:/etc/postgresql-common/krb5.keytab
+        DATA: log_autovacuum_min_duration|600000
+        DATA: log_checkpoints|on
+        DATA: log_destination|csvlog
+        DATA: log_directory|log
+        DATA: log_file_mode|0600
+        DATA: log_filename|postgresql-%a.log
+        DATA: log_hostname|off
+        DATA: log_line_prefix|%m [%p] %q%u@%d 
+        DATA: log_recovery_conflict_waits|off
+        DATA: log_rotation_age|1440
+        DATA: log_rotation_size|10240
+        DATA: log_startup_progress_interval|10000
+        DATA: log_timezone|Europe/Paris
+        DATA: log_truncate_on_rotation|off
+        DATA: max_pred_locks_per_page|2
+        DATA: max_pred_locks_per_relation|-2
+        DATA: max_slot_wal_keep_size|-1
+        DATA: max_standby_archive_delay|30000
+        DATA: max_standby_streaming_delay|30000
+        DATA: max_sync_workers_per_subscription|2
+        DATA: max_wal_size|1024
+        DATA: min_wal_size|80
+        DATA: pre_auth_delay|0
+        DATA: primary_conninfo|
+        DATA: primary_slot_name|
+        DATA: promote_trigger_file|
+        DATA: recovery_end_command|
+        DATA: recovery_init_sync_method|fsync
+        DATA: recovery_min_apply_delay|0
+        DATA: recovery_prefetch|try
+        DATA: remove_temp_files_after_crash|on
+        DATA: restart_after_crash|on
+        DATA: restore_command|
+        DATA: ssl|on
+        DATA: ssl_ca_file|
+        DATA: ssl_cert_file|/etc/ssl/certs/ssl-cert-snakeoil.pem
+        DATA: ssl_ciphers|HIGH:MEDIUM:+3DES:!aNULL
+        DATA: ssl_crl_dir|
+        DATA: ssl_crl_file|
+        DATA: ssl_dh_params_file|
+        DATA: ssl_ecdh_curve|prime256v1
+        DATA: ssl_key_file|/etc/ssl/private/ssl-cert-snakeoil.key
+        DATA: ssl_max_protocol_version|
+        DATA: ssl_min_protocol_version|TLSv1.2
+        DATA: ssl_passphrase_command|
+        DATA: ssl_passphrase_command_supports_reload|off
+        DATA: ssl_prefer_server_ciphers|on
+        DATA: synchronous_standby_names|
+        DATA: syslog_facility|local0
+        DATA: syslog_ident|postgres
+        DATA: syslog_sequence_numbers|on
+        DATA: syslog_split_messages|on
+        DATA: trace_recovery_messages|log
+        DATA: vacuum_defer_cleanup_age|0
+        DATA: wal_keep_size|0
+        DATA: wal_receiver_create_temp_slot|off
+        DATA: wal_receiver_status_interval|10
+        DATA: wal_receiver_timeout|60000
+        DATA: wal_retrieve_retry_interval|5000
+        DATA: wal_sync_method|fdatasync
+        DATA: wal_writer_delay|200
+        DATA: wal_writer_flush_after|128
+
+    # 6.5 - Ensure 'Superuser' runtime parameters are configured correctly (Manual)
+    In order to improve and optimize server performance, the server's superuser has the privilege of setting these parameters which are found in the configuration file postgresql.conf. Alternatively, they can be changed in a PostgreSQL login session via the SQL command ALTER SYSTEM which writes its changes in the configuration file postgresql.auto.conf. All changes made on this level will affect the overall behavior of the server. These changes can only be affected by a server restart after the parameters have been altered in the configuration files. A denial of service is possible by the over-allocating of limited resources, such as RAM. Data can be corrupted by allowing damaged pages to load or by changing parameters to reinterpret values in an unexpected fashion, e.g. changing the time zone. Client messages can be altered in such a way as to interfere with the application logic. Logging can be altered and obfuscated inhibiting root cause analysis.
+
+        DATA: name|setting
+        DATA: allow_in_place_tablespaces|off
+        DATA: allow_system_table_mods|off
+        DATA: backtrace_functions|
+        DATA: commit_delay|0
+        DATA: compute_query_id|auto
+        DATA: credcheck.encrypted_password_allowed|off
+        DATA: credcheck.max_auth_failure|3
+        DATA: credcheck.no_password_logging|on
+        DATA: credcheck.password_contain|
+        DATA: credcheck.password_contain_username|on
+        DATA: credcheck.password_ignore_case|off
+        DATA: credcheck.password_min_digit|0
+        DATA: credcheck.password_min_length|1
+        DATA: credcheck.password_min_lower|0
+        DATA: credcheck.password_min_repeat|0
+        DATA: credcheck.password_min_special|0
+        DATA: credcheck.password_min_upper|0
+        DATA: credcheck.password_not_contain|
+        DATA: credcheck.password_reuse_history|2
+        DATA: credcheck.password_reuse_interval|0
+        DATA: credcheck.password_valid_max|0
+        DATA: credcheck.password_valid_until|0
+        DATA: credcheck.username_contain|
+        DATA: credcheck.username_contain_password|on
+        DATA: credcheck.username_ignore_case|off
+        DATA: credcheck.username_min_digit|0
+        DATA: credcheck.username_min_length|1
+        DATA: credcheck.username_min_lower|0
+        DATA: credcheck.username_min_repeat|0
+        DATA: credcheck.username_min_special|0
+        DATA: credcheck.username_min_upper|0
+        DATA: credcheck.username_not_contain|
+        DATA: credcheck.whitelist|
+        DATA: deadlock_timeout|1000
+        DATA: debug_discard_caches|0
+        DATA: dynamic_library_path|$libdir
+        DATA: extension_destdir|
+        DATA: ignore_checksum_failure|off
+        DATA: jit_dump_bitcode|off
+        DATA: lc_messages|en_US.UTF-8
+        DATA: lo_compat_privileges|off
+        DATA: log_duration|off
+        DATA: log_error_verbosity|default
+        DATA: log_executor_stats|off
+        DATA: log_lock_waits|on
+        DATA: log_min_duration_sample|-1
+        DATA: log_min_duration_statement|-1
+        DATA: log_min_error_statement|error
+        DATA: log_min_messages|warning
+        DATA: log_parameter_max_length|-1
+        DATA: log_parser_stats|off
+        DATA: log_planner_stats|off
+        DATA: log_replication_commands|off
+        DATA: log_statement|none
+        DATA: log_statement_sample_rate|1
+        DATA: log_statement_stats|off
+        DATA: log_temp_files|-1
+        DATA: log_transaction_sample_rate|0.01
+        DATA: max_stack_depth|2048
+        DATA: session_preload_libraries|
+        DATA: session_replication_role|origin
+        DATA: temp_file_limit|-1
+        DATA: track_activities|on
+        DATA: track_counts|on
+        DATA: track_functions|none
+        DATA: track_io_timing|off
+        DATA: track_wal_io_timing|off
+        DATA: update_process_title|on
+        DATA: wal_compression|off
+        DATA: wal_consistency_checking|
+        DATA: wal_init_zero|on
+        DATA: wal_recycle|on
+        DATA: zero_damaged_pages|off
+
+    # 6.6 - Ensure 'User' runtime parameters are configured correctly (Manual)
+    These PostgreSQL runtime parameters are managed at the user account (ROLE) level. In order to improve performance and optimize features, a ROLE has the privilege of setting numerous parameters in a transaction, session, or entity attribute. Any ROLE can alter any of these parameters. A denial of service is possible by the over-allocating of limited resources, such as RAM.  Changing VACUUM parameters can force a server shutdown which is standard procedure preventing data corruption from transaction ID wraparound. Data can be corrupted by changing parameters to reinterpret values in an unexpected fashion, e.g. changing the time zone. Logging can be altered and obfuscated to inhibit root cause analysis.
+
+        DATA: name|setting
+        DATA: application_name|psql
+        DATA: array_nulls|on
+        DATA: backend_flush_after|0
+        DATA: backslash_quote|safe_encoding
+        DATA: bytea_output|hex
+        DATA: check_function_bodies|on
+        DATA: client_connection_check_interval|0
+        DATA: client_encoding|UTF8
+        DATA: client_min_messages|notice
+        DATA: commit_siblings|5
+        DATA: constraint_exclusion|partition
+        DATA: cpu_index_tuple_cost|0.005
+        DATA: cpu_operator_cost|0.0025
+        DATA: cpu_tuple_cost|0.01
+        DATA: cursor_tuple_fraction|0.1
+        DATA: DateStyle|ISO, DMY
+        DATA: debug_pretty_print|on
+        DATA: debug_print_parse|off
+        DATA: debug_print_plan|off
+        DATA: debug_print_rewritten|off
+        DATA: default_statistics_target|100
+        DATA: default_table_access_method|heap
+        DATA: default_tablespace|
+        DATA: default_text_search_config|pg_catalog.french
+        DATA: default_toast_compression|pglz
+        DATA: default_transaction_deferrable|off
+        DATA: default_transaction_isolation|read committed
+        DATA: default_transaction_read_only|off
+        DATA: effective_cache_size|524288
+        DATA: effective_io_concurrency|1
+        DATA: enable_async_append|on
+        DATA: enable_bitmapscan|on
+        DATA: enable_gathermerge|on
+        DATA: enable_hashagg|on
+        DATA: enable_hashjoin|on
+        DATA: enable_incremental_sort|on
+        DATA: enable_indexonlyscan|on
+        DATA: enable_indexscan|on
+        DATA: enable_material|on
+        DATA: enable_memoize|on
+        DATA: enable_mergejoin|on
+        DATA: enable_nestloop|on
+        DATA: enable_parallel_append|on
+        DATA: enable_parallel_hash|on
+        DATA: enable_partition_pruning|on
+        DATA: enable_partitionwise_aggregate|off
+        DATA: enable_partitionwise_join|off
+        DATA: enable_seqscan|on
+        DATA: enable_sort|on
+        DATA: enable_tidscan|on
+        DATA: escape_string_warning|on
+        DATA: exit_on_error|off
+        DATA: extra_float_digits|1
+        DATA: force_parallel_mode|off
+        DATA: from_collapse_limit|8
+        DATA: geqo|on
+        DATA: geqo_effort|5
+        DATA: geqo_generations|0
+        DATA: geqo_pool_size|0
+        DATA: geqo_seed|0
+        DATA: geqo_selection_bias|2
+        DATA: geqo_threshold|12
+        DATA: gin_fuzzy_search_limit|0
+        DATA: gin_pending_list_limit|4096
+        DATA: hash_mem_multiplier|2
+        DATA: idle_in_transaction_session_timeout|0
+        DATA: idle_session_timeout|0
+        DATA: IntervalStyle|postgres
+        DATA: jit|on
+        DATA: jit_above_cost|100000
+        DATA: jit_expressions|on
+        DATA: jit_inline_above_cost|500000
+        DATA: jit_optimize_above_cost|500000
+        DATA: jit_tuple_deforming|on
+        DATA: join_collapse_limit|8
+        DATA: lc_monetary|fr_FR.UTF-8
+        DATA: lc_numeric|fr_FR.UTF-8
+        DATA: lc_time|fr_FR.UTF-8
+        DATA: local_preload_libraries|
+        DATA: lock_timeout|0
+        DATA: logical_decoding_work_mem|65536
+        DATA: log_parameter_max_length_on_error|0
+        DATA: maintenance_io_concurrency|10
+        DATA: maintenance_work_mem|65536
+        DATA: max_parallel_maintenance_workers|2
+        DATA: max_parallel_workers|8
+        DATA: max_parallel_workers_per_gather|2
+        DATA: min_parallel_index_scan_size|64
+        DATA: min_parallel_table_scan_size|1024
+        DATA: parallel_leader_participation|on
+        DATA: parallel_setup_cost|1000
+        DATA: parallel_tuple_cost|0.1
+        DATA: password_encryption|scram-sha-256
+        DATA: plan_cache_mode|auto
+        DATA: quote_all_identifiers|off
+        DATA: random_page_cost|4
+        DATA: recursive_worktable_factor|10
+        DATA: row_security|on
+        DATA: search_path|"$user", public
+        DATA: seq_page_cost|1
+        DATA: standard_conforming_strings|on
+        DATA: statement_timeout|0
+        DATA: stats_fetch_consistency|cache
+        DATA: synchronize_seqscans|on
+        DATA: synchronous_commit|on
+        DATA: tcp_keepalives_count|9
+        DATA: tcp_keepalives_idle|7200
+        DATA: tcp_keepalives_interval|75
+        DATA: tcp_user_timeout|0
+        DATA: temp_buffers|1024
+        DATA: temp_tablespaces|
+        DATA: TimeZone|Europe/Paris
+        DATA: timezone_abbreviations|Default
+        DATA: trace_notify|off
+        DATA: trace_sort|off
+        DATA: transaction_deferrable|off
+        DATA: transaction_isolation|read committed
+        DATA: transaction_read_only|off
+        DATA: transform_null_equals|off
+        DATA: vacuum_cost_delay|0
+        DATA: vacuum_cost_limit|200
+        DATA: vacuum_cost_page_dirty|20
+        DATA: vacuum_cost_page_hit|1
+        DATA: vacuum_cost_page_miss|2
+        DATA: vacuum_failsafe_age|1600000000
+        DATA: vacuum_freeze_min_age|50000000
+        DATA: vacuum_freeze_table_age|150000000
+        DATA: vacuum_multixact_failsafe_age|1600000000
+        DATA: vacuum_multixact_freeze_min_age|5000000
+        DATA: vacuum_multixact_freeze_table_age|150000000
+        DATA: wal_sender_timeout|60000
+        DATA: wal_skip_threshold|2048
+        DATA: work_mem|4096
+        DATA: xmlbinary|base64
+        DATA: xmloption|content
+
+    # 6.7 - Ensure FIPS 140-2 OpenSSL cryptography is used
+    Install, configure, and use OpenSSL on a platform that has a NIST certified FIPS 140-2 installation of OpenSSL. This provides PostgreSQL instances the ability to generate and validate cryptographic hashes to protect unclassified information requiring confidentiality and cryptographic protection, in accordance with the data owner's requirements.
+
+        CRITICAL: Installation of FIPS modules is not completed.
+
+        INFO: See <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening#switching-the-system-to-fips-mode_using-the-system-wide-cryptographic-policies" target="_new">"switching the system to fips mode"</a> to enable FIPS mode
+
+        DATA: OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)
+
+    # 6.8 - Ensure TLS is enabled and configured correctly
+    If TLS is not enabled and configured correctly, this increases the risk of data being compromised in transit. A self-signed certificate can be used for testing, but a certificate signed by a certificate authority (CA) (either one of the global CAs or a local one) should be used in production so that clients can verify the server's identity. If all the database clients are local to the organization, using a local CA is recommended. To ultimately enable and enforce TLS authentication for the server, appropriate "hostssl" records must be added to the pg_hba.conf file.
+
+        WARNING: Setting 'ssl_min_protocol_version' should be TLS v1.3 or newer.
+
+        WARNING: The SSL certificate should have a passphrase and setting 'ssl_passphrase_command' should be set.
+
+        CRITICAL: To enforce TLS authentication for the server, appropriate "hostssl" or "hostgssenc" records must be added to the pg_hba.conf file and "host" connections rejected.
+
+    # 6.9 - Ensure a cryptographic extension is installed
+    PostgreSQL instances handling data that requires "data at rest" protections must employ cryptographic mechanisms to prevent unauthorized disclosure and modification of the information at rest. These cryptographic mechanisms may be native to PostgreSQL or implemented via additional software or operating system/file system settings, as appropriate to the situation.
+
+        SUCCESS: Test passed
+
+#--------------------------------------------------------------------------------
+# 7 - Replication
+#--------------------------------------------------------------------------------
+    # 7.1 - Ensure a replication-only user is created and used for streaming replication
+    As it is not necessary to be a superuser to initiate a replication connection, it is proper to create an account specifically for replication. This allows further "locking down" the uses of the superuser account and follows the general principle of using the least privileges necessary.
+
+        WARNING: A replication-only user should be created.
+
+    # 7.2 - Ensure logging of replication commands is configured
+    A successful replication connection allows for a complete copy of the data stored within the data cluster to be offloaded to another, potentially insecure, host. As such, it is advisable to log all replication commands that are executed in your database cluster to ensure the data is not off-loaded to an unexpected/undesired location.
+
+        WARNING: Setting 'log_replication_commands' should be enabled.
+
+    # 7.3 - Ensure base backups are configured and functional
+    A 'base backup' is a copy of the PRIMARY host's data cluster (PGDATA) and is used to create STANDBY hosts and for Point In Time Recovery (PITR) mechanisms. Base backups should be copied across networks in a secure manner using an encrypted transport mechanism. The PostgreSQL CLI pg_basebackup can be used, however, TLS encryption should be enabled on the server as per section 6.8 of this benchmark.
+
+    # 7.4 - Ensure WAL archiving is configured and functional
+    Write Ahead Log (WAL) Archiving, or Log Shipping, is the process of sending transaction log files from the PRIMARY host either to one or more STANDBY hosts or to be archived on a remote storage device for later use, e.g. PITR. There are several utilities that can copy WALs including, but not limited to, cp, scp, sftp, and rynsc. Basically, the server follows a set of runtime parameters which define when the WAL should be copied using one of the aforementioned utilities.
+
+        CRITICAL: WAL archiving is not activated. Setting 'archive_mode' must be enabled.
+
+    # 7.5 - Ensure streaming replication parameters are configured correctly
+    Streaming replication from a PRIMARY host transmits DDL, DML, passwords, and other potentially sensitive activities and data. These connections should be protected with Secure Sockets Layer (SSL). Verify on STANDBY that primary_conninfo contains 'sslmode=require sslcompression=1'
+
+        CRITICAL: Setting 'primary_conninfo' must enforce TLS encryption of the replication (sslmode=required).
+
+#--------------------------------------------------------------------------------
+# 8 - Special Configuration Considerations
+#--------------------------------------------------------------------------------
+The recommendations proposed here try to address some of the less common use cases which may warrant additional configuration guidance/consideration.
+
+    # 8.1 - Ensure PostgreSQL subdirectory locations are outside the data cluster
+    This report is part of chapter <a href="#1.3">"1.3 Ensure Data Cluster Initialized Successfully"</a>.
+
+    # 8.2 - Ensure the backup and restore tool, 'pgBackRest', is installed and configured
+    The native PostgreSQL backup facility pg_dump provides adequate logical backup operations but does not provide for Point In Time Recovery (PITR). The PostgreSQL facility pg_basebackup performs a physical backup of the database files and does provide for PITR, but it is constrained by single threading. Both of these methodologies are standard in the PostgreSQL ecosystem and appropriate for particular backup/recovery needs. pgBackRest offers another option with much more robust features and flexibility.
+
+        WARNING: No stanzas exist for 'pgBackRest'.
+
+    # 8.3 - Ensure miscellaneous configuration settings are correct (Manual)
+    This recommendation covers non-regular, special files, and dynamic libraries. PostgreSQL permits local logins via the UNIX DOMAIN SOCKET and, for the most part, anyone with a legitimate Unix login account can make the attempt. Limiting PostgreSQL login attempts can be made by relocating the UNIX DOMAIN SOCKET to a subdirectory with restricted permissions. The creation and implementation of user-defined dynamic libraries is an extraordinary powerful capability. In the hands of an experienced DBA/programmer, it can significantly enhance the power and flexibility of the RDBMS; but new and unexpected behavior can also be assigned to the RDBMS, resulting in a very dangerous environment in what should otherwise be trusted.
+
+        DATA: name|setting
+        DATA: dynamic_library_path|$libdir
+        DATA: external_pid_file|/var/run/postgresql/15-main.pid
+        DATA: local_preload_libraries|
+        DATA: session_preload_libraries|
+        DATA: shared_preload_libraries|credcheck
+        DATA: unix_socket_directories|/var/run/postgresql
+
+
+(*) Check not part of the CIS Benchmark

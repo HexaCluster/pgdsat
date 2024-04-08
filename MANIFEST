@@ -1,0 +1,11 @@
+LICENSE
+Makefile.PL
+MANIFEST
+pgdsat
+README.md
+doc/pgdsat.pod
+lib/PGDSAT/Labels.pm
+lib/PGDSAT/Messages.pm
+lib/PGDSAT/Report.pm
+lib/PGDSAT/Netmask.pm
+ChangeLog

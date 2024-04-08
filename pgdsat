@@ -1,0 +1,170 @@
+#!/usr/bin/env perl
+#-------------------------------------------------------------------------------
+# Project  : Postgresql Database Security Assessment Tool
+# Name     : pgdsat
+# Author   : Gilles Darold
+# Copyright: Copyright (c) 2024 HexaCluster Corp
+# Function : Tool used to perform a reliable and repeatable security assessment
+#            on PostgreSQL clusters
+#-------------------------------------------------------------------------------
+#
+#        This program is free software: you can redistribute it and/or modify
+#        it under the terms of the GNU General Public License as published by
+#        the Free Software Foundation, either version 3 of the License, or
+#        any later version.
+#
+#        This program is distributed in the hope that it will be useful,
+#        but WITHOUT ANY WARRANTY; without even the implied warranty of
+#        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#        GNU General Public License for more details.
+#
+#        You should have received a copy of the GNU General Public License
+#        along with this program. If not, see < http://www.gnu.org/licenses/ >.
+#
+#
+#   Some parts are directly copied from the CIS Benchmarks documentation published
+#   under the Creative Commons License. Please see the below link for the current
+#   terms of use: https://www.cisecurity.org/terms-and-conditions-table-of-contents
+#
+#------------------------------------------------------------------------------
+use vars qw($VERSION);
+
+use strict;
+
+use PGDSAT;
+
+use POSIX qw(locale_h);
+use Getopt::Long qw(:config no_ignore_case bundling);
+
+$VERSION = '1.0';
+
+setlocale(LC_NUMERIC, 'C');
+setlocale(LC_ALL,     'C');
+
+# Flush output immediatly
+$| = 1;
+
+####
+# Process command line options
+####
+my @options = (
+	'allow|a=s@',
+	'database|d=s',
+	'pgdata|D=s',
+	'exclude|e=s@',
+	'format|f=s',
+	'host|h=s',
+	'lang|l=s',
+	'output|o=s',
+	'port|p=i',
+	'psql|P=s',
+	'source|s=s',
+	'title|T=s',
+	'version|v!',
+	'cluster|V=s',
+	'user|U=s',
+	'help!',
+	'no-pg-version-check!',
+);
+my %cfg = ();
+
+my $optres = GetOptions(\%cfg, @options);
+die "FATAL: use pgdsat --help\n" if (not $optres);
+
+# Show version and exit when request
+if ($cfg{version})
+{
+	print "pgdsat v$VERSION\n";
+	exit 0;
+}
+
+# Show help and exit when request
+&usage if ($cfg{help});
+
+# Autoset format with the out file extension if not stdout
+if (!$cfg{format} && $cfg{output} ne '-') {
+	if ($cfg{output} =~ /\.(html|htm)$/) {
+		$cfg{format} = 'html';
+	} elsif ($cfg{output} =~ /\.(text|txt)$/) {
+		$cfg{format} = 'text';
+	}
+}
+$cfg{format} = 'html' if (!$cfg{format});
+
+# Set default title
+$cfg{title} ||= 'on ' . &get_hostname();
+
+
+####
+# Run security tests following CIS PostgreSQL Benchmark 16
+# with additionals checks by HexaCluster Corp
+####
+my $pgdsat = new PGDSAT(%cfg);
+$pgdsat->run();
+
+exit 0;
+
+#------------------------------------------------------------------------------
+# Methods
+#------------------------------------------------------------------------------
+
+####
+# Show help message
+####
+sub usage
+{
+        print qq{
+Usage: pgdsat [options]
+
+    PostgreSQL Database Security Assessment Tool.
+
+Options:
+
+    -a | --allow   : database to include into the report in parts 4.3 to 4.5.
+                     Can be used multiple time and regexp are supported.
+    -d | --database: name of the database to connect to PostgreSQL.
+    -D | --pgdata  : path to the PostgreSQL cluster PGDATA to analyze.
+    -e | --exclude : database to exclude from the report in parts 4.3 to 4.5.
+                     Can be used multiple time and regexp are supported.
+    -f | --format  : output format, can be: text or html. Default: text.
+    -h | --host    : PostgreSQL serveur ip address if not listening on localhost
+    -l | --lang    : language used for the output (en_US, fr_FR). Default: en_US
+    -o | --output  : output file where to write the report. Default stdout.
+    -p | --port    : port where PostgreSQL is listening, default: 5432.
+    -P | --psql    : full path to the psql command if not found in PATH.
+    -s | --source  : type od server. Values can be premise, cloud, ...
+    -T | --title   : set title to use to differentiate the reports. Default is
+                     to use "on `hostname`".
+    -U | --user    : PostgreSQL user to use with the psql command.
+    -v | --version : show version of pgdsat and exist.
+    -V | --cluster : PostgreSQL Cluster version, ex: 15.4.
+    --help         : show usage and exit.
+
+    --no-pg-version-check : disable check for PostgreSQL minor versions. Useful
+                     when connecting to Internet is not permitted.
+Example:
+
+    pgdsat -U postgres -h localhost -d postgres -o report.html
+or
+    pgdsat -U postgres -h localhost -d postgres -f html > report.html
+
+If you have several PostgreSQL cluster installed you must give the running
+version that you want to test:
+
+    pgdsat -U postgres -h localhost -d postgres -f html -V 15.4 > report.html
+
+};
+
+	exit 0;
+}
+
+####
+# Get hostname to be appended to report's title
+####
+sub get_hostname
+{
+	my $hostname = `hostname`;
+	chomp($hostname);
+	$hostname ||= 'localhost';
+}
+
