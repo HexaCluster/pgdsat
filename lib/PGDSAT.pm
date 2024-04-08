@@ -502,15 +502,16 @@ sub check_cluster_init
 
 		$self->logmsg('1.3.3', 'head3', 'Ensure Data Cluster have checksum enabled');
 		# Verify that checksum are enabled (HexaCluster)
-		my @checksum = `pg_checksums -c "$data_dir" 2>/dev/null`;
-		if ($#checksum < 0) {
-			$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $data_dir);
-			$self->{results}{'1.3.3'} = 'FAILURE';
+		my $checksum = `pg_controldata "$data_dir" 2>/dev/null | grep "Data page checksum version" | sed 's/.* //'`;
+		chomp($checksum);
+		if ($checksum ne '0')
+		{
+			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 		}
 		else
 		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
-			$self->logdata(@checksum);
+			$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $data_dir);
+			$self->{results}{'1.3.3'} = 'FAILURE';
 		}
 
 		$self->logmsg('1.3.4', 'head3', 'Ensure WALs and temporary files are not on the same partition as the PGDATA');
