@@ -12,7 +12,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
 1.3 - Ensure Data Cluster Initialized Successfully => SUCCESS
 1.3.1 - Check initialization of the PGDATA => SUCCESS
 1.3.2 - Check version in PGDATA => SUCCESS
-1.3.3 - Ensure Data Cluster have checksum enabled => FAILURE
+1.3.3 - Ensure Data Cluster have checksum enabled => SUCCESS
 1.3.4 - Ensure WALs and temporary files are not on the same partition as the PGDATA => FAILURE
 1.3.5 - Ensure that the PGDATA partition is encrypted (Manual)
 1.4 - Ensure PostgreSQL versions are up-to-date => FAILURE
@@ -150,7 +150,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
         # 1.3.3 - Ensure Data Cluster have checksum enabled
         When checksum are not enabled, silent data corruption can not be detected by PostgreSQL. Verify that they are enabled. (*)
 
-            CRITICAL: Checksum are not enabled in PGDATA /var/lib/postgresql/15/main.
+            SUCCESS: Test passed
 
         # 1.3.4 - Ensure WALs and temporary files are not on the same partition as the PGDATA
         The PostgreSQL cluster is organized to carry out specific tasks in subdirectories. For the purposes of performance, reliability, and security some of these subdirectories should be relocated outside the data cluster. (*)
@@ -226,7 +226,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
         DATA: drwx------  2 postgres postgres 4096 mars  12 10:46 log
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_commit_ts
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_dynshmem
-        DATA: drwx------  4 postgres postgres 4096 avril  8 14:59 pg_logical
+        DATA: drwx------  4 postgres postgres 4096 avril  8 22:59 pg_logical
         DATA: drwx------  4 postgres postgres 4096 nov.   6  2022 pg_multixact
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_notify
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_replslot
