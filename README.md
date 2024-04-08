@@ -171,7 +171,6 @@ Options:
     -o | --output  : output file where to write the report. Default stdout.
     -p | --port    : port where PostgreSQL is listening, default: 5432.
     -P | --psql    : full path to the psql command if not found in PATH.
-    -s | --source  : type od server. Values can be premise, cloud, ...
     -T | --title   : set title to use to differentiate the reports. Default is
                      to use "on `hostname`".
     -U | --user    : PostgreSQL user to use with the psql command.

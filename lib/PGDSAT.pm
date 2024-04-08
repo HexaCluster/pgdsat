@@ -63,8 +63,6 @@ sub _init
 	####
 	# From command line options
 	####
-	# Type of PostgreSQL hosting (permise, cloud provider)
-	$self->{source} = $options{source} || 'premise';
 	# Output format (html or text)
 	$self->{format} = $options{format} || '';
 	# Language to use
