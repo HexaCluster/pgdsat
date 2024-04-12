@@ -224,7 +224,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
         DATA: drwx------  2 postgres postgres 4096 mars  12 10:46 log
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_commit_ts
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_dynshmem
-        DATA: drwx------  4 postgres postgres 4096 avril 12 13:22 pg_logical
+        DATA: drwx------  4 postgres postgres 4096 avril 12 13:42 pg_logical
         DATA: drwx------  4 postgres postgres 4096 nov.   6  2022 pg_multixact
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_notify
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_replslot
@@ -408,8 +408,8 @@ These authorizations must be structured to block unauthorized use and/or corrupt
         WARNING: There are more than one PostgreSQL superuser.
 
         DATA: Role|Attributs|Description
-        DATA: gilles|Superuser|
-        DATA: postgres|Superuser, Create role, Create DB, Replication, Bypass RLS|
+        DATA: gilles|Superuser|{}|
+        DATA: postgres|Superuser, Create role, Create DB, Replication, Bypass RLS|{}|
 
     # 4.3 - Ensure excessive function privileges are revoked (Manual)
     Functions in PostgreSQL can be created with the SECURITY DEFINER option. When SECURITY DEFINER functions are executed by a user, said function is run with the privileges of the user who created it, not the user who is running it. List of the functions with SECURITY DEFINER option not associated to an extension, per database.

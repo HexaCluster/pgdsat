@@ -93,6 +93,15 @@ $cfg{format} = 'html' if (!$cfg{format});
 # Set default title
 $cfg{title} ||= 'on ' . &get_hostname();
 
+# Verify that psql, systemctl, pg_controldata, curl and lsblk are available from PATH
+foreach my $c (qw/psql systemctl pg_controldata curl lsblk/)
+{
+	next if ($cfg{'no-pg-version-check'} && $c eq 'curl');
+	`which $c 2>/dev/null`;
+	if ($? != 0) {
+		die "FATAL: command $c is not available from environment variable \$PATH\n";
+	}
+}
 
 ####
 # Run security tests following CIS PostgreSQL Benchmark 16
