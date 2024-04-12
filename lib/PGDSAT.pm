@@ -1288,6 +1288,32 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 	# Drop our audit view
 	`$self->{psql} -Atc "DROP VIEW pgdsat_roletree;"`;
 
+	$self->logmsg('4.8', 'head2', 'Ensuse the public schema is protected');
+
+	$self->{collapse_id} = 500000000;
+	foreach my $db (@dbs)
+	{
+		# apply the filter on database to include in the report
+		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
+		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
+
+		$self->logmsg('4.8.' . $i, 'head3', $db);
+
+		my @public = `$self->{psql} -d $db -Atc "SELECT nspname, nspowner, nspacl FROM pg_catalog.pg_namespace WHERE nspname='public';"`;
+		if ($public[0] =~ m#,=U[C]?/#s)
+		{
+			$self->logmsg('4.8', 'WARNING', 'Schema public can be used by anyone in database %s.', $db);
+			unshift(@public, "nspname|nspowner|nspacl\n");
+			$self->logdata(@public);
+			$self->{results}{'4.8'} = 'FAILURE';
+		}
+		$self->{collapse_id}++;
+	}
+	if ($self->{results}{'4.8'} ne 'FAILURE')
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+
 	return @superusers;
 }
 

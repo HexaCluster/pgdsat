@@ -90,6 +90,7 @@ checked manually but most of them are check automatically by the tool.
           4.5 - Ensure Row Level Security (RLS) is configured correctly (Manual)
           4.6 - Ensure the set_user extension is installed (Manual) => FAILURE
           4.7 - Make use of predefined roles (Manual)
+          4.8 - Ensuse the public schema is protected
         5 - Connection and Login
           5.1 - Ensure login via "local" UNIX Domain Socket is configured correctly => FAILURE
           5.2 - Ensure login via "host" TCP/IP Socket is configured correctly => SUCCESS

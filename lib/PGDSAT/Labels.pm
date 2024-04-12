@@ -259,6 +259,10 @@ PostgreSQL processes will be lost.',
 			'description' => 'In keeping with the principle of least privilege, judicious use of the PostgreSQL predefined roles can greatly limit the access to privileged, or superuser, access.',
 			'manual' => 1,
 		},
+		'4.8' => {
+			'title' => 'Ensuse the public schema is protected',
+			'description' => 'Privileges on the PostgreSQL default public schema must be restricted to some users, grant to public users must be removed or the schema dropped.',
+		},
 #---------------------------
 		'5' => {
 			'title' => 'Connection and Login',
@@ -631,6 +635,10 @@ PostgreSQL processes will be lost.',
 			'title' => 'Utiliser des rôles prédéfinis',
 			'description' => 'Conformément au principe du moindre privilège, une utilisation judicieuse des rôles prédéfinis de PostgreSQL peut limiter considérablement l\'accès aux accès privilégiés ou superutilisateur.',
 			'manuel' => 1,
+		},
+		'4.8' => {
+			'title' => 'Vérifier que le schéma public ne peut pas être utilsé',
+			'description' => 'Les privilèges sur le schéma public créé par PostgreSQL par défault doivent être restreints à certains utilisateurs ou supprimé.',
 		},
 #-------------------------------
 		'5' => {
