@@ -619,7 +619,7 @@ sub check_extensions
 
 	$self->logmsg('1.5', 'head2', 'Ensure unused PostgreSQL extensions are removed');
 	my $i = 1;
-	$self->{collapse_id} = 400000000;
+	$self->{collapse_id}++;
 	foreach my $db (@dbs)
 	{
 		# apply the filter on database to include in the report
@@ -642,7 +642,6 @@ sub check_extensions
 			$self->{collapse_id}++;
 		}
 	}
-	$self->{collapse_id} = 0;
 }
 
 sub check_permissions
@@ -1159,7 +1158,7 @@ sub check_user_access
 
 	$self->logmsg('4.3', 'head2', 'Ensure excessive function privileges are revoked');
 	my $i = 1;
-	$self->{collapse_id} = 100000000;
+	$self->{collapse_id}++;
 	foreach my $db (@dbs)
 	{
 		# apply the filter on database to include in the report
@@ -1182,11 +1181,10 @@ sub check_user_access
 			$self->{collapse_id}++;
 		}
 	}
-	$self->{collapse_id} = 0;
 
 	$self->logmsg('4.4', 'head2', 'Ensure excessive DML privileges are revoked');
 	$i = 1;
-	$self->{collapse_id} = 200000000;
+	$self->{collapse_id}++;
 	foreach my $db (@dbs)
 	{
 		# apply the filter on database to include in the report
@@ -1219,7 +1217,6 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 			$i++;
 		}
 	}
-	$self->{collapse_id} = 0;
 
 	$self->logmsg('4.5', 'head2', 'Ensure Row Level Security (RLS) is configured correctly');
 	my @bypassrls = grep(!/Superuser/, grep(/Bypass RLS/i, @privs));
@@ -1235,7 +1232,7 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 	}
 
 	$i = 1;
-	$self->{collapse_id} = 300000000;
+	$self->{collapse_id}++;
 	foreach my $db (@dbs)
 	{
 		# apply the filter on database to include in the report
@@ -1258,7 +1255,6 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 			$i++;
 		}
 	}
-	$self->{collapse_id} = 0;
 
 	$self->logmsg('4.6', 'head2', 'Ensure the set_user extension is installed');
 	my $set_user = `$self->{psql} -Atc "SHOW shared_preload_libraries;"`;
@@ -1290,24 +1286,30 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 
 	$self->logmsg('4.8', 'head2', 'Ensuse the public schema is protected');
 
-	$self->{collapse_id} = 500000000;
+	$self->{collapse_id}++;
 	foreach my $db (@dbs)
 	{
 		# apply the filter on database to include in the report
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
 		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
 
-		$self->logmsg('4.8.' . $i, 'head3', $db);
-
 		my @public = `$self->{psql} -d $db -Atc "SELECT nspname, nspowner, nspacl FROM pg_catalog.pg_namespace WHERE nspname='public';"`;
 		if ($public[0] =~ m#,=U[C]?/#s)
 		{
-			$self->logmsg('4.8', 'WARNING', 'Schema public can be used by anyone in database %s.', $db);
+			$self->logmsg('4.8.' . $i, 'head3', $db);
+			if ($self->{format} eq 'html') {
+				$self->{details} .= "<div id=\"collapse-$self->{collapse_id}\" class=\"collapse\">\n";
+			}
+			$self->logmsg('4.8.' . $i, 'WARNING', 'Schema public can be used by anyone in database %s.', $db);
 			unshift(@public, "nspname|nspowner|nspacl\n");
 			$self->logdata(@public);
 			$self->{results}{'4.8'} = 'FAILURE';
+			if ($self->{format} eq 'html') {
+				$self->{details} .= "</div>\n";
+				$self->{collapse_id}++;
+			}
+			$i++;
 		}
-		$self->{collapse_id}++;
 	}
 	if ($self->{results}{'4.8'} ne 'FAILURE')
 	{

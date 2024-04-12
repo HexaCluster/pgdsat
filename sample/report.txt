@@ -224,7 +224,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
         DATA: drwx------  2 postgres postgres 4096 mars  12 10:46 log
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_commit_ts
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_dynshmem
-        DATA: drwx------  4 postgres postgres 4096 avril 12 13:00 pg_logical
+        DATA: drwx------  4 postgres postgres 4096 avril 12 13:22 pg_logical
         DATA: drwx------  4 postgres postgres 4096 nov.   6  2022 pg_multixact
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_notify
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_replslot
@@ -488,7 +488,7 @@ These authorizations must be structured to block unauthorized use and/or corrupt
             DATA: nspname|nspowner|nspacl
             DATA: public|6171|{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}
 
-        # 4.8.1 - gilles
+        # 4.8.2 - gilles
             WARNING: Schema public can be used by anyone in database gilles.
 
             DATA: nspname|nspowner|nspacl
