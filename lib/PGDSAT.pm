@@ -717,11 +717,26 @@ sub check_permissions
 	}
 
 	$self->logmsg('2.5', 'head2', 'Check permissions on Unix Socket');
-	my $perm_sock = `$self->{psql} -Atc "SHOW unix_socket_permissions"`;
-	chomp($perm_sock);
-	if ($perm_sock eq '0777') {
-		$self->logmsg('2.5', 'WARNING', 'Permission on the Unix socket should be more restrictive, for example: 0770 or 0700. Currently it is set to 0777.');
-		$self->{results}{'2.5'} = 'FAILURE';
+	my @perm_sock = `$self->{psql} -Atc "SHOW unix_socket_permissions;SHOW unix_socket_directories;SHOW port;"`;
+	chomp(@perm_sock);
+	if ($perm_sock[1])
+	{
+		my @sock_dirs = split(/,/, $perm_sock[1]);
+		map { s/\@//; } @sock_dirs;
+		foreach my $d (@sock_dirs)
+		{
+			my $perm = `ls -la "$d/.s.PGSQL.$perm_sock[2]" | awk '{print \$1}'`;
+			if ($perm eq 'srwxrwxrwx' || $perm_sock[0] eq '0777')
+			{
+				$self->logmsg('2.5', 'WARNING', 'Permission on Unix socket %s should be more restrictive, for example: 0770 or 0700. Currently it is set to 0777.', "$d/.s.PGSQL.$perm_sock[2]");
+				$self->{results}{'2.5'} = 'FAILURE';
+			}
+		}
+
+		if ($self->{results}{'2.5'} ne 'FAILURE')
+		{
+			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+		}
 	}
 	else
 	{
