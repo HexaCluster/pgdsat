@@ -1766,8 +1766,21 @@ sub check_pg_settings
 	my @has_crypto = `$self->{psql} -Atc "select * from pg_available_extensions where name='pgcrypto' or name='pgsodium'"`;
 	chomp(@has_crypto);
 	if ($#has_crypto < 0) {
-		$self->logmsg('6.11', 'WARNING', 'Extension pgcrypto or pgsodium are not installed.');
+		$self->logmsg('6.11', 'WARNING', 'Extensions pgcrypto or pgsodium are not installed.');
 		$self->{results}{'6.9'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+
+	$self->logmsg('6.10', 'head2', 'Ensure a data anonymization extension is installed');
+	my $has_anon = `$self->{psql} -Atc "SHOW session_preload_libraries;"`;
+	chomp($has_anon);
+	my @libs = split(/,/, $has_anon);
+	if (!grep(/^(anon|pg_anonymize)$/, @libs)) {
+		$self->logmsg('6.12', 'WARNING', 'Extensions pg_anonymize or anon are not installed.');
+		$self->{results}{'6.10'} = 'FAILURE';
 	}
 	else
 	{

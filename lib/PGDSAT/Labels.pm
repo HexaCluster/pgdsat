@@ -351,6 +351,10 @@ PostgreSQL processes will be lost.',
 			'title' => 'Ensure a cryptographic extension is installed',
 			'description' => 'PostgreSQL instances handling data that requires "data at rest" protections must employ cryptographic mechanisms to prevent unauthorized disclosure and modification of the information at rest. These cryptographic mechanisms may be native to PostgreSQL or implemented via additional software or operating system/file system settings, as appropriate to the situation.',
 		},
+		'6.10' => {
+			'title' => 'Ensure a data anonymization extension is installed',
+			'description' => 'To mask or replace information that could permit to identify a person or to prevent exposing sensitive data, a data anomymization extension should be installed on the PostgreSQL cluster. Check that extensions pg_anonymize or anon are set in \'session_preload_libraries\' (*).',
+		},
 		'7' => {
 			'title' => 'Replication',
 		},
@@ -728,9 +732,13 @@ PostgreSQL processes will be lost.',
 			'title' => 'Vérifier que TLS est activé et configuré correctement',
 			'description' => 'Si TLS n\'est pas activé et configuré correctement, cela augmente le risque de compromission des données lors du transit. Un certificat auto-signé peut être utilisé pour les tests, mais un certificat signé par une autorité de certification (CA) (soit l\'une des autorités de certification globales, soit une autorité locale) doit être utilisé en production afin que les clients puissent vérifier l\'identité du serveur. . Si tous les clients de base de données sont locaux dans l\'organisation, il est recommandé d\'utiliser une autorité de certification locale. Pour finalement activer et appliquer l\'authentification TLS pour le serveur, les enregistrements "hostssl" appropriés doivent être ajoutés au fichier pg_hba.conf.',
 		},
-		'6,9' => {
+		'6.9' => {
 			'title' => 'Vérifier qu\'une extension cryptographique est installée',
 			'description' => 'Les instances PostgreSQL traitant des données qui nécessitent des protections "données au repos" doivent utiliser des mécanismes cryptographiques pour empêcher la divulgation et la modification non autorisées des informations au repos. Ces mécanismes cryptographiques peuvent être natifs de PostgreSQL ou implémentés via un logiciel supplémentaire ou des paramètres de système d\'exploitation/système de fichiers, selon la situation.',
+		},
+		'6.10' => {
+			'title' => 'Vérifier qu\'une extension d\'anonymisation de données installée',
+			'description' => 'Pour masquer ou remplacer les informations permettant l\'identification des personnes ou empêcher l\'exposition de données sensibles, une extension d\'anonymisation des données devrait être installée sur l\'instance PostgreSQL. Verification que les extensions pg_anonymize ou anon sont définies dans \'session_preload_libraries\' (*).',
 		},
 		'7' => {
 			'title' => 'Réplication',

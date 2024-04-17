@@ -83,6 +83,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
 6.7 - Ensure FIPS 140-2 OpenSSL cryptography is used => FAILURE
 6.8 - Ensure TLS is enabled and configured correctly => FAILURE
 6.9 - Ensure a cryptographic extension is installed => SUCCESS
+6.10 - Ensure a data anonymization extension is installed => FAILURE
 7 - Replication
 7.1 - Ensure a replication-only user is created and used for streaming replication => FAILURE
 7.2 - Ensure logging of replication commands is configured => FAILURE
@@ -182,7 +183,6 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
     # 1.5 - Ensure unused PostgreSQL extensions are removed (Manual)
         # 1.5.1 - contrib_regression
             DATA: Name|Version|Schema|Description
-            DATA: credcheck|2.6.0|public|credcheck - postgresql plain text credential checker
             DATA: plpgsql|1.0|pg_catalog|PL/pgSQL procedural language
 
         # 1.5.2 - gilles
@@ -202,7 +202,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
             DATA: postgis|3.4.2|public|PostGIS geometry and geography spatial types and functions
             DATA: postgres_fdw|1.1|public|foreign-data wrapper for remote PostgreSQL servers
 
-    # 1.6 - Ensure the tablespace location is not inside the PGDATA
+    # 1.6 - Ensure tablespace location is not inside the PGDATA
         WARNING: Tablespace location /var/lib/postgresql/15/main/TB1 should not be inside the data directory.
 
 #--------------------------------------------------------------------------------
@@ -224,12 +224,12 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
         DATA: total 108
         DATA: drwx------ 21 postgres postgres 4096 avril 17 16:39 .
         DATA: drwxr-xr-x  3 postgres postgres 4096 nov.   6  2022 ..
-        DATA: drwx------ 32 postgres postgres 4096 avril 15 21:02 base
-        DATA: drwx------  2 postgres postgres 4096 avril 17 09:41 global
+        DATA: drwx------ 32 postgres postgres 4096 avril 17 17:48 base
+        DATA: drwx------  2 postgres postgres 4096 avril 17 18:22 global
         DATA: drwx------  2 postgres postgres 4096 mars  12 10:46 log
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_commit_ts
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_dynshmem
-        DATA: drwx------  4 postgres postgres 4096 avril 17 16:44 pg_logical
+        DATA: drwx------  4 postgres postgres 4096 avril 17 18:24 pg_logical
         DATA: drwx------  4 postgres postgres 4096 nov.   6  2022 pg_multixact
         DATA: drwx------  2 postgres postgres 4096 nov.   6  2022 pg_notify
         DATA: -rw-------  1 postgres postgres 8192 avril 15 21:02 pg_password_history
@@ -246,7 +246,7 @@ POSTGRESQL SECURITY ASSESSEMENT REPORT ON INSPIRON-14
         DATA: drwx------  2 postgres postgres 4096 déc.   1 19:32 pg_xact
         DATA: -rw-------  1 postgres postgres   88 nov.   6  2022 postgresql.auto.conf
         DATA: -rw-------  1 postgres postgres  130 avril 17 09:40 postmaster.opts
-        DATA: -rw-------  1 postgres postgres  100 avril 17 09:40 postmaster.pid
+        DATA: -rw-------  1 postgres postgres  100 avril 17 17:49 postmaster.pid
         DATA: drwx------  3 postgres postgres 4096 avril 17 16:40 TB1
 
     # 2.4 - Check permissions of pg_hba.conf
@@ -976,6 +976,11 @@ The restrictions on client/user connections to the PostgreSQL database blocks un
     PostgreSQL instances handling data that requires "data at rest" protections must employ cryptographic mechanisms to prevent unauthorized disclosure and modification of the information at rest. These cryptographic mechanisms may be native to PostgreSQL or implemented via additional software or operating system/file system settings, as appropriate to the situation.
 
         SUCCESS: Test passed
+
+    # 6.10 - Ensure a data anonymization extension is installed
+    To mask or replace information that could permit to identify a person or to prevent exposing sensitive data, a data anomymization extension should be installed on the PostgreSQL cluster. Check that extensions pg_anonymize or anon are set in 'session_preload_libraries' (*).
+
+        WARNING: Extensions pg_anonymize or anon are not installed.
 
 #--------------------------------------------------------------------------------
 # 7 - Replication
