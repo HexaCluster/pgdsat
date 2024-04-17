@@ -4,7 +4,7 @@ pgdsat - PostgreSQL Database Security Assessment Tool
 
 ## DESCRIPTION
 
-PGDSAT is a security assessment tool that checks around 70 PostgreSQL security
+PGDSAT is a security assessment tool that checks around 80 PostgreSQL security
 controls of your PostgreSQL clusters including all recommendations from the
 [CIS compliance benchmark](https://www.cisecurity.org/cis-benchmarks/)
 but not only.
