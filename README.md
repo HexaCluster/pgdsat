@@ -46,6 +46,7 @@ checked manually but most of them are check automatically by the tool.
             1.3.5 - Ensure that the PGDATA partition is encrypted (Manual)
           1.4 - Ensure PostgreSQL versions are up-to-date => FAILURE
           1.5 - Ensure unused PostgreSQL extensions are removed (Manual)
+	  1.6 - Ensure tablespace location is not inside the PGDATA
         2 - Directory and File Permissions
           2.1 - Ensure the file permissions mask is correct => FAILURE
           2.2 - Check permissions of PGDATA => SUCCESS

@@ -69,6 +69,10 @@ $VERSION = '1.0';
 		       'descritption' => 'PostgreSQL extensions are created in database, some may not be used anymore. This is a risk to keep unused extension installed in a database.',
 			'manual' => 1,
 	        },
+		'1.6' => {
+		       'title' => 'Ensure tablespace location is not inside the PGDATA',
+		       'descritption' => 'Creating a tablespace in the data directory is useless and not recommended for performances reason and disk space use.',
+	        },
 #---------------------------
 		'2' => {
 			'title' => 'Directory and File Permissions',
@@ -446,6 +450,10 @@ PostgreSQL processes will be lost.',
 		       'title' => 'Vérifier que les extensions PostgreSQL inutilisées sont supprimées',
 		       'descritption' => 'Les extensions PostgreSQL sont créées dans la base de données, certaines ne peuvent plus être utilisées. Il est risqué de conserver les extensions inutilisées installées dans une base de données.',
 			'manuel' => 1,
+	        },
+		'1.6' => {
+		       'title' => 'Vérifier que la destination des tablespaces n\'est pas dans le PGDATA',
+		       'descritption' => 'Créer un tablespace dans le répertoire des données est inutile est absoluement pas recommendé pour des raisons de performances et d\'utilisation d\'espace disque.',
 	        },
 #-------------------------------
 		'2' => {

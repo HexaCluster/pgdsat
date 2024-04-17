@@ -134,6 +134,8 @@ sub run
 	$self->check_version();
 	# Check the installed extensions
 	$self->check_extensions();
+	# Check that tablespaces are not inside PGDATA
+	$self->check_tablespaces();
 
 	$self->logmsg(2, 'head1', 'Directory and File Permissions');
 	$self->check_permissions();
@@ -534,7 +536,8 @@ sub check_cluster_init
 		chomp($wal_links);
 
 		# FIXME: We assume that a symlink that doesn't point into the PGDATA
-		# is on another partition which could obviously not be the case.
+		# which could obviously not be the case.
+		$data_dir =~ s#/$##;
 		if (!$wal_links || $wal_links !~ m#^/# || $wal_links =~ m#^$data_dir/#)
 		{
 			$self->logmsg('1.12', 'WARNING', 'Subdirectory pg_wal is not on a separate partition than the PGDATA %s.');
@@ -648,6 +651,29 @@ sub check_extensions
 			$i++;
 			$self->{collapse_id}++;
 		}
+	}
+}
+
+sub check_tablespaces
+{
+	my $self = shift;
+
+	$self->logmsg('1.6', 'head2', 'Ensure tablespace location is not inside the PGDATA');
+	my @dest = `ls -la /var/lib/postgresql/15/main/pg_tblspc/ | sed 's/.* -> //'`;
+	chomp(@dest);
+	my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
+	chomp($data_dir);
+	$data_dir =~ s#/$##;
+	foreach my $d (@dest)
+	{
+		if ($d =~ m#$data_dir\/#) {
+			$self->logmsg('1.16', 'WARNING', 'Tablespace location %s should not be inside the data directory.', $d);
+			$self->{results}{'1.6'} = 'FAILURE';
+		}
+	}
+	if ($self->{results}{'1.6'} ne 'FAILURE')
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 }
 
@@ -1120,6 +1146,7 @@ sub check_log_settings
 	{
 		my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
 		chomp($data_dir);
+		$data_dir =~ s#/$##;
 		my $log_dir = `$self->{psql} -Atc "SHOW log_directory"`;
 		chomp($log_dir);
 		if ($log_dir !~ m#^/# or $log_dir =~ m#^$data_dir/#) {
