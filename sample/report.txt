@@ -425,9 +425,7 @@ These authorizations must be structured to block unauthorized use and/or corrupt
             DATA: schema|table|user|select|insert|update|delete
             DATA: pgtt_schema|pg_global_temp_tables|dump_anon|t|t|t|t
             DATA: pgtt_schema|pg_global_temp_tables|test|t|t|t|t
-            DATA: pgtt_schema|pg_global_temp_tables|oraweb|t|t|t|t
             DATA: pgtt_schema|pg_global_temp_tables|testuser|t|t|t|t
-            DATA: pgtt_schema|pg_global_temp_tables|toto|t|t|t|t
             DATA: pgtt_schema|pg_global_temp_tables|hr|t|t|t|t
             DATA: pgtt_schema|pg_global_temp_tables|u01|t|t|t|t
             DATA: pgtt_schema|pg_global_temp_tables|user|t|t|t|t
@@ -439,9 +437,7 @@ These authorizations must be structured to block unauthorized use and/or corrupt
             DATA: public|customer|dump_anon|t|f|f|f
             DATA: public|spatial_ref_sys|dump_anon|t|f|f|f
             DATA: public|spatial_ref_sys|test|t|f|f|f
-            DATA: public|spatial_ref_sys|oraweb|t|f|f|f
             DATA: public|spatial_ref_sys|testuser|t|f|f|f
-            DATA: public|spatial_ref_sys|toto|t|f|f|f
             DATA: public|spatial_ref_sys|hr|t|f|f|f
             DATA: public|spatial_ref_sys|u01|t|f|f|f
             DATA: public|spatial_ref_sys|user|t|f|f|f
@@ -449,9 +445,7 @@ These authorizations must be structured to block unauthorized use and/or corrupt
             DATA: public|tab|dump_anon|t|f|f|f
             DATA: utl_file|utl_file_dir|dump_anon|t|f|f|f
             DATA: utl_file|utl_file_dir|test|t|f|f|f
-            DATA: utl_file|utl_file_dir|oraweb|t|f|f|f
             DATA: utl_file|utl_file_dir|testuser|t|f|f|f
-            DATA: utl_file|utl_file_dir|toto|t|f|f|f
             DATA: utl_file|utl_file_dir|hr|t|f|f|f
             DATA: utl_file|utl_file_dir|u01|t|f|f|f
             DATA: utl_file|utl_file_dir|user|t|f|f|f
