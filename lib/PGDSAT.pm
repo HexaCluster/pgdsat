@@ -512,6 +512,13 @@ sub check_cluster_init
 		if ($checksum ne '0')
 		{
 			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+			# Show stats about checksum failure if any
+			my @checksum_fail = `$self->{psql} -Atc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
+			if ($#checksum_fail > 0)
+			{
+				unshift(@checksum_fail, "datname|checksum_failures|checksum_last_failure\n");
+				$self->logdata(@checksum_fail);
+			}
 		}
 		else
 		{
