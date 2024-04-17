@@ -71,7 +71,7 @@ $VERSION = '1.0';
 	        },
 		'1.6' => {
 		       'title' => 'Ensure tablespace location is not inside the PGDATA',
-		       'descritption' => 'Creating a tablespace in the data directory is useless and not recommended for performances reason and disk space use.',
+		       'descritption' => 'Creating a tablespace in the data directory is useless and not recommended for performances reason and disk space use (*).',
 	        },
 #---------------------------
 		'2' => {
@@ -453,7 +453,7 @@ PostgreSQL processes will be lost.',
 	        },
 		'1.6' => {
 		       'title' => 'Vérifier que la destination des tablespaces n\'est pas dans le PGDATA',
-		       'descritption' => 'Créer un tablespace dans le répertoire des données est inutile est absoluement pas recommendé pour des raisons de performances et d\'utilisation d\'espace disque.',
+		       'descritption' => 'Créer un tablespace dans le répertoire des données est inutile est absoluement pas recommendé pour des raisons de performances et d\'utilisation d\'espace disque (*).',
 	        },
 #-------------------------------
 		'2' => {
