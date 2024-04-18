@@ -107,6 +107,14 @@ sub _init
 	my $is_superuwser = `$self->{psql} -Atc "select 1 from pg_roles where rolname = current_user and rolsuper;"`;
 	chomp($is_superuwser);
 	die "FATAL: this program must be run as PostgreSQL superuser.\n" if (!$is_superuwser);
+
+        # Check that the PostgreSQL have the version specified by --cluster
+        my $ver = `$self->{psql} -Atc "SELECT version();"`;
+        chomp($ver);
+	if ($self->{cluster} and $ver !~ /$self->{cluster}/) {
+		die "FATAL: cluster version $self->{cluster} doesn't match the PostgreSQL version: $ver.\n";
+	}
+
 }
 
 ####
