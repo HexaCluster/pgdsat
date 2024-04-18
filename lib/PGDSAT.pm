@@ -667,7 +667,7 @@ sub check_tablespaces
 	my $self = shift;
 
 	$self->logmsg('1.6', 'head2', 'Ensure tablespace location is not inside the PGDATA');
-	my @dest = `ls -la /var/lib/postgresql/15/main/pg_tblspc/ | sed 's/.* -> //'`;
+	my @dest = `ls -la /var/lib/postgresql/15/main/pg_tblspc/ 2>/dev/null | sed 's/.* -> //'`;
 	chomp(@dest);
 	my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
 	chomp($data_dir);
