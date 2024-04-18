@@ -519,7 +519,7 @@ sub check_cluster_init
 		# Verify that checksum are enabled (HexaCluster)
 		my $checksum = `pg_controldata "$data_dir" 2>/dev/null | grep "Data page checksum version" | sed 's/.* //'`;
 		chomp($checksum);
-		if ($checksum ne '0')
+		if ($checksum)
 		{
 			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 			# Show stats about checksum failure if any
