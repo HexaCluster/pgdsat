@@ -517,23 +517,38 @@ sub check_cluster_init
 
 		$self->logmsg('1.3.3', 'head3', 'Ensure Data Cluster have checksum enabled');
 		# Verify that checksum are enabled (HexaCluster)
-		my $checksum = `pg_controldata "$data_dir" 2>/dev/null | grep "Data page checksum version" | sed 's/.* //'`;
-		chomp($checksum);
-		if ($checksum ne '0')
-		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
-			# Show stats about checksum failure if any
-			my @checksum_fail = `$self->{psql} -Atc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
-			if ($#checksum_fail > 0)
-			{
-				unshift(@checksum_fail, "datname|checksum_failures|checksum_last_failure\n");
-				$self->logdata(@checksum_fail);
-			}
+		my $controldata_output = `pg_controldata "$data_dir" 2>&1`;
+		my $controldata_exit_status = $? >> 8;  # Correctly shift to get the actual exit status
+		# chomp($checksum);
+		if ($controldata_exit_status != 0) {
+			# Handle errors such as 'Permission denied'
+			$self->logmsg('1.11', 'CRITICAL', 'Failed to execute pg_controldata. Error: %s', $controldata_output);
+			$self->{results}{'1.3.3'} = 'FAILURE';
 		}
 		else
 		{
-			$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $data_dir);
-			$self->{results}{'1.3.3'} = 'FAILURE';
+			my $checksum = $controldata_output =~ /Data page checksum version: (\d+)/ ? $1 : undef;
+			if (defined $checksum and $checksum ne '0')
+			{
+				$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+				# Show stats about checksum failure if any
+				my @checksum_fail = `$self->{psql} -Atc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
+				if ($#checksum_fail > 0)
+				{
+					unshift(@checksum_fail, "datname|checksum_failures|checksum_last_failure\n");
+					$self->logdata(@checksum_fail);
+				}
+			}
+			elsif (defined $checksum and $checksum eq '0')
+			{
+				$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $data_dir);
+				$self->{results}{'1.3.3'} = 'FAILURE';
+			}
+			else
+			{
+				$self->logmsg('1.11', 'CRITICAL', "Checksum data could not be parsed from pg_controldata output.");
+				$self->{results}{'1.3.3'} = 'FAILURE';
+			}
 		}
 
 		$self->logmsg('1.3.4', 'head3', 'Ensure WALs and temporary files are not on the same partition as the PGDATA');
