@@ -115,6 +115,17 @@ sub _init
 		die "FATAL: cluster version $self->{cluster} doesn't match the PostgreSQL version: $ver.\n";
 	}
 
+	# Verify that we have permission to read the PGDATA
+	my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
+	chomp($data_dir);
+	if ($data_dir)
+	{
+		my $base_ver = `ls -la "$data_dir/PG_VERSION" 2>&1`;
+		my $status = $? >> 8;
+		if ($status != 0) {
+			die "FATAL: can not read data directory $data_dir, insuffisient privilege.\n";
+		}
+	}
 }
 
 ####
