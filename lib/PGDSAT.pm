@@ -99,14 +99,14 @@ sub _init
 	$self->{psql} .= " -U $self->{user}" if ($self->{user});
 	$self->{psql} .= " -h $self->{host}" if ($self->{host});
 	$self->{psql} .= " -p $self->{port}" if ($self->{port});
-	$self->{psql} .= " -d self->{database}" if ($self->{database});
+	$self->{psql} .= " -d $self->{database}" if ($self->{database});
 	# We want the default language for psql messages and no look at .psqlrc
 	$self->{psql} = 'LANG=C ' . $self->{psql} . ' -X';
 
 	# Verify that the connection user is really superuser
 	my $is_superuwser = `$self->{psql} -Atc "select 1 from pg_roles where rolname = current_user and rolsuper;"`;
 	chomp($is_superuwser);
-	die "FATAL: this program must be run as PostgreSQL superuser.\n" if (!$is_superuwser);
+	die "FATAL: this program must be run as PostgreSQL superuser: $self->{psql} -Atc ...\n" if (!$is_superuwser);
 
         # Check that the PostgreSQL have the version specified by --cluster
         my $ver = `$self->{psql} -Atc "SELECT version();"`;
