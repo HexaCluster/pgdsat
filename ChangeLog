@@ -1,1 +1,37 @@
-2024-03-25 - Initial commit.
+2024-04-19 - Version 1.1
+
+This release fixes several issues reported by users since last release and adds
+some new features:
+
+  * Add cluster version mismatch check if --cluster is used.
+  * Add a check to ensure a data anonymization extension is installed
+    (extensions searched in session_preload_libraries: pg_anonymize or anon).
+  * Add check to ensure tablespace location is not inside the PGDATA.
+  * Add statistics about checksum failures if any.
+  * Double check the Unix socket permission on disk
+  * Add check to ensure that the public schema is protected in all database.
+    Thanks to Julien Rouhaud for the report.
+
+Here is the list of changes:
+
+  - Fix check for versions shows success when using an unprivileged user.
+    Thanks to vinash Vallarapu for the report.
+  - Fix incorrect status for Checksum check when user has insufficient
+    permission to use the PGDATA. Thanks to vinash Vallarapu for the patch.
+  - Redirect ls command error to /dev/null for tablespace check. Thanks to
+    vinash Vallarapu for the report.
+  - Fix typo in psql command. Thanks to vinash Vallarapu for the report.
+  - Mark last tablespace check as not from CIS Benchmark
+  - Fix number of checks done by pgdsat in documentation
+  - Verify that all necessary commands are available from $PATH.
+  - Review the way collapse id is generated.
+  - Verify at beginning that the connection user is really superuser. Thanks
+    to Julien Rouhaud for the report.
+  - Use pg_controldata to verify checksum instead of pg_checksums for
+    performances reason. Thanks to Julien Rouhaud for the report.
+  - Force use of -X with psql command to avoid looking at .psqlrc. Thanks to
+    Julien Rouhaud for the patch.
+  - Remove the source option, not implemented yet.
+
+2024-03-25 - Initial version v1.0
+

@@ -38,7 +38,7 @@ if ($ExtUtils::MakeMaker::VERSION >= 6.46) {
 WriteMakefile(
 	'DISTNAME'	=> 'pgdsat',
 	'NAME'		=> 'pgdsat',
-	'VERSION'	=> '1.0',
+	'VERSION'	=> '1.1',
 	'LICENSE'      => 'gpl_3',
 	'dist'  => {
 			'COMPRESS'=>'gzip -9f', 'SUFFIX' => 'gz',

@@ -11,7 +11,7 @@ package PGDSAT;
 use vars qw($VERSION);
 use strict;
 
-$VERSION = '1.0';
+$VERSION = '1.1';
 
 use PGDSAT::Labels;
 use PGDSAT::Messages;

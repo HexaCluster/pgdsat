@@ -10,7 +10,7 @@ package PGDSAT::Labels;
 use vars qw($VERSION %AUDIT_LBL);
 use strict;
 
-$VERSION = '1.0';
+$VERSION = '1.1';
 
 %AUDIT_LBL = (
 	'en_US' => {
