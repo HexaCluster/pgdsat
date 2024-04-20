@@ -15,12 +15,12 @@ some new features:
 Here is the list of changes:
 
   - Fix check for versions shows success when using an unprivileged user.
-    Thanks to vinash Vallarapu for the report.
+    Thanks to Avinash Vallarapu for the report.
   - Fix incorrect status for Checksum check when user has insufficient
-    permission to use the PGDATA. Thanks to vinash Vallarapu for the patch.
+    permission to use the PGDATA. Thanks to Avinash Vallarapu for the patch.
   - Redirect ls command error to /dev/null for tablespace check. Thanks to
-    vinash Vallarapu for the report.
-  - Fix typo in psql command. Thanks to vinash Vallarapu for the report.
+    Avinash Vallarapu for the report.
+  - Fix typo in psql command. Thanks to Avinash Vallarapu for the report.
   - Mark last tablespace check as not from CIS Benchmark
   - Fix number of checks done by pgdsat in documentation
   - Verify that all necessary commands are available from $PATH.
