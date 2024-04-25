@@ -148,6 +148,11 @@ Ensure 'sudo apt install crypto-policies' have been run for the FIPS test.
 
 =item *
 
+Ensure the Perl bignum module is installed 'perl -e "use bignum"', if the command fail,
+install it using 'dnf install perl-bignum perl-Math-BigRat'.
+
+=item *
+
 Ensure the 'curl' command is available and the server have access to Internet. It is used to check the PostgreSQL version online. If this is not possible, use command line option --no-pg-version-check to disable this check.
 
 =item *
@@ -168,6 +173,12 @@ To install PGDSAT:
 
 If you don't want to install PGDSAT on your system but just want to execute
 it from the source directory, follow the instruction at end of next chapter.
+
+Some Linux RPM based distributions do not provide the bignum Perl module by
+default, you will need to install it:
+
+	dnf install perl-bignum perl-Math-BigRat
+
 
 =head2 USAGE
 
