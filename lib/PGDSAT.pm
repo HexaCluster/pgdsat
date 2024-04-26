@@ -1609,7 +1609,12 @@ sub check_ip_address
 	else
 	{
 		$netmask_lbl = 'netmask';
-		my $block = PGDSAT::Netmask->new2( $entry->{address}, $entry->{netmask} ) or die $Net::Netmask::error;
+		my $block = PGDSAT::Netmask->new2( $entry->{address}, $entry->{netmask} );
+		if (not $block)
+		{
+			print STDERR "ERROR: fail to get ip range from ( $entry->{address}, $entry->{netmask} ). $Net::Netmask::error\n";
+			return;
+		}
 		$mask = $block->mask;
 		$size = $block->size;
 	}
