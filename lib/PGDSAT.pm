@@ -378,10 +378,22 @@ sub load_pg_hba_file
 		my $idx = 3;
 		if ($data[0] eq 'local') {
 			$hba_entry{address} = '';
-		} elsif ($data[3] =~ s#/(\d+)$##) {
+		}
+		# IP/CIDR
+		elsif ($data[3] =~ s#/(\d+)$##)
+		{
 			$hba_entry{address} = $data[$idx++],
 			$hba_entry{netmask} = $1;
-		} else {
+		}
+		# fqdn
+		elsif ($data[3] =~ m#[^0-9\.]#)
+		{
+			$hba_entry{address} = $data[$idx++];
+			$hba_entry{netmask} = '';
+		}
+		# IP   NETMASK
+		else
+		{
 			$hba_entry{address} = $data[$idx++];
 			$hba_entry{netmask} = $data[$idx++];
 		}
@@ -1606,7 +1618,7 @@ sub check_ip_address
 		$mask = $block->mask;
 		$size = $block->size;
 	}
-	else
+	elsif ($entry->{netmask})
 	{
 		$netmask_lbl = 'netmask';
 		my $block = PGDSAT::Netmask->new2( $entry->{address}, $entry->{netmask} );
