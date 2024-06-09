@@ -9,7 +9,7 @@ package PGDSAT;
 # Function : Module containing the security checks methods
 #------------------------------------------------------------------------------
 use vars qw($VERSION);
-use strict;
+use strict qw/vars/;
 
 $VERSION = '1.1';
 
@@ -84,11 +84,24 @@ sub _init
 	$self->{psql} = $options{psql} || 'psql';
 	$self->{pgdata} = $options{pgdata} || '';
 
+	# variables to store information that are used in several methods
+	$self->{hba_entries} = ();
+	$self->{superusers}  = ();
+	$self->{dbs}         = ();
+	$self->{privs}       = ();
+
+	$self->{log_destination} = '';
+	$self->{log_collector} = '';
+
 	# Database to allow/exclude from the report
 	$self->{allow}   = ();
 	push(@{ $self->{allow} }, @{$options{allow}}) if ($#{$options{allow}} >= 0);
 	$self->{exclude} = ();
 	push(@{ $self->{exclude} }, @{$options{exclude}}) if ($#{$options{exclude}} >= 0);
+
+	# Checks to remove from the report
+	$self->{remove}   = ();
+	push(@{ $self->{remove} }, @{$options{remove}}) if ($#{$options{remove}} >= 0);
 
 	# Compose the psql system command call
 	$self->{pgdb}     ||= $ENV{PGDATABASE};
@@ -115,17 +128,26 @@ sub _init
 		die "FATAL: cluster version $self->{cluster} doesn't match the PostgreSQL version: $ver.\n";
 	}
 
-	# Verify that we have permission to read the PGDATA
+	# limit the check to the running cluster
+	@{ $self->{pkg_ver} } = ($self->{cluster}) if ($self->{cluster});
+
+	# Verify that we have permission to read the PGDATA and set $self->{pgdata}
 	my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
 	chomp($data_dir);
 	if ($data_dir)
 	{
+		$data_dir =~ s/\/$//;
+		$self->{pgdata} = $data_dir;
 		my $base_ver = `ls -la "$data_dir/PG_VERSION" 2>&1`;
 		my $status = $? >> 8;
 		if ($status != 0) {
 			die "FATAL: can not read data directory $data_dir, insuffisient privilege.\n";
 		}
 	}
+
+	# Get the list of the database in the PostgreSQL cluster
+	@{$self->{dbs}} = `$self->{psql} -Atc "SELECT datname FROM pg_database WHERE datallowconn ORDER BY 1;"`;
+	chomp(@{$self->{dbs}});
 }
 
 ####
@@ -136,46 +158,35 @@ sub run
 {
 	my $self = shift;
 
-	$self->logmsg(1, 'head1', 'Installation and Patches');
+	# Execute all check ordered by level
+	foreach my $level (sort {
+				my @left = (0,0,0);
+				my @right = (0,0,0);
+				my @tmp = split(/\./, $a);
+				for (my $i = 0; $i <= $#tmp; $i++) {
+					$left[$i] = $tmp[$i];
+				}
+				@tmp = split(/\./, $b);
+				for (my $i = 0; $i <= $#tmp; $i++) {
+					$right[$i] = $tmp[$i];
+				}
+				"$left[0]." . sprintf("%02d", $left[1]) . sprintf("%02d", $left[2]) <=> "$right[0]." . sprintf("%02d", $right[1]) . sprintf("%02d", $right[2])
 
-	# Check the PostgreSQL packages installed and set the list of PG version
-	$self->check_package();
+			} keys %{ $PGDSAT::Labels::AUDIT_LBL{$self->{lang}} } )
+	{
+		my $skip_check = 0;
+		foreach my $r (@{$self->{remove}}) {
+			$skip_check = 1 if (grep(/^$r$/, $level));
+		}
+		next if ($skip_check == 1);
 
-	# limit the check to the running cluster
-	@{ $self->{pkg_ver} } = ($self->{cluster}) if ($self->{cluster});
-
-	# Check if PG is started at boot time
-	$self->check_systemd();
-
-	# Check if the PGDATA is well initialized
-	$self->check_cluster_init();
-	# Check if the PostgreSQL minor version are up-to-date
-	$self->check_version();
-	# Check the installed extensions
-	$self->check_extensions();
-	# Check that tablespaces are not inside PGDATA
-	$self->check_tablespaces();
-
-	$self->logmsg(2, 'head1', 'Directory and File Permissions');
-	$self->check_permissions();
-
-	$self->logmsg(3, 'head1', 'Logging And Auditing');
-	$self->check_log_settings();
-
-	$self->logmsg(4, 'head1', 'User Access and Authorization');
-	my @super = $self->check_user_access();
-
-	$self->logmsg(5, 'head1', 'Connection and Login');
-	$self->check_connection(@super);
-
-	$self->logmsg(6, 'head1', 'PostgreSQL Settings');
-	$self->check_pg_settings();
-
-	$self->logmsg(7, 'head1', 'Replication');
-	$self->check_replication();
-
-	$self->logmsg(8, 'head1', 'Special Configuration Considerations');
-	$self->check_special_conf();
+		my @head = split(/\./, $level);
+		my $num = $#head+1;
+		$self->logmsg($level, "head$num", $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{title});
+		my $function = 'check_' . $level;
+		$function =~ s/\./_/g;
+		&{$function}($self);
+	}
 
 	PGDSAT::Report::generate_report($self);
 
@@ -411,24 +422,36 @@ sub load_pg_hba_file
 # Security check methods
 #------------------------------------------------------------------------------
 
-sub check_package
+sub check_1
+{
+	# nothing to do
+}
+
+
+sub check_1_1
+{
+	# nothing to do
+}
+
+sub check_1_1_1
 {
 	my $self = shift;
 
-	$self->logmsg('1.1', 'head2', 'Ensure packages are obtained from authorized repositories');
-
-	$self->logmsg('1.1.1', 'head3', "PostgreSQL packages installed.");
 	my @packages = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server"`;
 	if ($#packages < 0) {
 		@packages = `dpkg -l 2>/dev/null | grep -E "postgresql-[1-9]{1,2}" | sed 's/^ii //'`;
 	}
+
 	if ($#packages < 0) {
 		$self->logmsg('1.1', 'CRITICAL', 'No PostgreSQL packages found.');
 		$self->{results}{'1.1.1'} = 'FAILURE';
 	}
 	$self->logdata(@packages);
+}
 
-	$self->logmsg('1.1.2', 'head3', 'Ensure packages are obtained from PGDG');
+sub check_1_1_2
+{
+	my $self = shift;
 
 	@{ $self->{pkg_ver} } = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server" | grep -i PGDG | awk -F "-" '{print \$3}' | sort -u`;
 	if ($#{ $self->{pkg_ver} } < 0) {
@@ -441,17 +464,14 @@ sub check_package
 	}
 	else
 	{
+		$self->{cluster} = $self->{pkg_ver}[-1] if (!$self->{cluster});
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
-	chomp(@{ $self->{pkg_ver} });
-
 }
 
-sub check_systemd
+sub check_1_2
 {
 	my $self = shift;
-
-	$self->logmsg('1.2', 'head2', 'Ensure systemd Service Files Are Enabled');
 
 	my $patroni = `rpm -qa 2>/dev/null| grep "patroni"`;
 	if (!$patroni) {
@@ -463,6 +483,7 @@ sub check_systemd
 	foreach my $ver (@{ $self->{pkg_ver} })
 	{
 		my ($major, $minor) = split(/\./, $ver);
+
 		my $ret = `systemctl is-enabled postgresql-$major.service 2>/dev/null`;
 		if (!$ret) {
 			$ret = `systemctl is-enabled postgresql\@$major-main.service 2>/dev/null`;
@@ -475,6 +496,11 @@ sub check_systemd
 				$self->logmsg('1.7', 'WARNING', 'PostgreSQL version %s, is not enabled as a systemd service.', $major);
 				$self->{results}{'1.2'} = 'FAILURE';
 			}
+		}
+		elsif (!$patroni)
+		{
+			$self->logmsg('1.17', 'INFO', 'PostgreSQL version %s, is enabled as a systemd service.', $major, $major);
+			$self->{results}{'1.2'} = 'SUCCESS';
 		}
 		$ret = `systemctl status postgresql-$major.service 2>/dev/null | grep "active (running)"`;
 		if (!$ret) {
@@ -498,94 +524,111 @@ sub check_systemd
 	return $self->{cluster} || $running;
 }
 
-sub check_cluster_init
+sub check_1_3
+{
+	# nothing to do
+}
+
+sub check_1_3_1
 {
 	my $self = shift;
 
-	$self->logmsg('1.3', 'head2', 'Ensure Data Cluster Initialized Successfully');
+	my ($major, $minor) = split(/\./, $self->{cluster});
 
-	foreach my $ver (@{ $self->{pkg_ver} })
+	# Verify that the PGDATA is initialized
+	my $base_ver = `find "$self->{pgdata}/base/" -name PG_VERSION 2>/dev/null | xargs -i cat {} | sort -u`;
+	chomp($base_ver);
+	if (!$base_ver) {
+		$self->logmsg('1.9', 'CRITICAL', 'Wrong or no base directory found, the PGDATA (%s) must be initialized first (see initdb).', $self->{pgdata});
+		$self->{results}{'1.3.1'} = 'FAILURE';
+	}
+	else
 	{
-		my ($major, $minor) = split(/\./, $ver);
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
 
-		# Verify that the PGDATA exists and that permissions are correct
-		my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
-		chomp($data_dir);
-		return if (!$data_dir);
+sub check_1_3_2
+{
+	my $self = shift;
 
-		# Verify that the PGDATA is initialized
-		$self->logmsg('1.3.1', 'head3', 'Check initialization of the PGDATA');
-		my $base_ver = `find "$data_dir/base/" -name PG_VERSION 2>/dev/null | xargs -i cat {} | sort -u`;
-		chomp($base_ver);
-		if (!$base_ver) {
-			$self->logmsg('1.9', 'CRITICAL', 'Wrong or no base directory found, the PGDATA (%s) must be initialized first (see initdb).', $data_dir);
-			$self->{results}{'1.3.1'} = 'FAILURE';
-		}
-		else
-		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
-		}
-		# Verify that we have the right PG_VERSION
-		$self->logmsg('1.3.2', 'head3', 'Check version in PGDATA');
-		my $ver = `cat "$data_dir/PG_VERSION"`;
-		chomp($ver);
-		if ($ver ne $major) {
-			$self->logmsg('1.10', 'CRITICAL', 'The version of the PGDATA (%s) does not correspond to the PostgreSQL cluster version; You need to upgrade the PGDATA v%s to v%s first.', $data_dir, $ver, $major);
-			$self->{results}{'1.3.2'} = 'FAILURE';
-		}
-		else
-		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
-		}
+	my ($major, $minor) = split(/\./, $self->{cluster});
 
-		$self->logmsg('1.3.3', 'head3', 'Ensure Data Cluster have checksum enabled');
-		# Verify that checksum are enabled (HexaCluster)
-		my $checksum = `pg_controldata "$data_dir" 2>/dev/null | grep "Data page checksum version" | sed 's/.* //'`;
-		chomp($checksum);
-		if ($checksum)
-		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
-			# Show stats about checksum failure if any
-			my @checksum_fail = `$self->{psql} -Atc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
-			if ($#checksum_fail > 0)
-			{
-				unshift(@checksum_fail, "datname|checksum_failures|checksum_last_failure\n");
-				$self->logdata(@checksum_fail);
-			}
-		}
-		else
-		{
-			$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $data_dir);
-			$self->{results}{'1.3.3'} = 'FAILURE';
-		}
+	# Verify that we have the right PG_VERSION
+	my $ver = `cat "$self->{pgdata}/PG_VERSION"`;
+	chomp($ver);
+	if ($ver ne $major) {
+		$self->logmsg('1.10', 'CRITICAL', 'The version of the PGDATA (%s) does not correspond to the PostgreSQL cluster version; You need to upgrade the PGDATA v%s to v%s first.', $self->{pgdata}, $ver, $major);
+		$self->{results}{'1.3.2'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
 
-		$self->logmsg('1.3.4', 'head3', 'Ensure WALs and temporary files are not on the same partition as the PGDATA');
-		my $temp_tbsp = `$self->{psql} -Atc "SHOW temp_tablespaces"`;
-		chomp($temp_tbsp);
+sub check_1_3_3
+{
+	my $self = shift;
 
-		my $wal_links = `ls -la "$data_dir/pg_wal" | grep "^l" | sed 's/.* -> //'`;
-		chomp($wal_links);
+	my ($major, $minor) = split(/\./, $self->{cluster});
 
-		# FIXME: We assume that a symlink that doesn't point into the PGDATA
-		# which could obviously not be the case.
-		$data_dir =~ s#/$##;
-		if (!$wal_links || $wal_links !~ m#^/# || $wal_links =~ m#^$data_dir/#)
+	# Verify that checksum are enabled (HexaCluster)
+	my $checksum = `pg_controldata "$self->{pgdata}" 2>/dev/null | grep "Data page checksum version" | sed 's/.* //'`;
+	chomp($checksum);
+	if ($checksum)
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+		# Show stats about checksum failure if any
+		my @checksum_fail = `$self->{psql} -Atc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
+		if ($#checksum_fail > 0)
 		{
-			$self->logmsg('1.12', 'WARNING', 'Subdirectory pg_wal is not on a separate partition than the PGDATA %s.');
-			$self->{results}{'1.3.4'} = 'FAILURE';
-		}
-		if (!$temp_tbsp || $temp_tbsp !~ m#^/# || $temp_tbsp =~ m#^$data_dir/#)
-		{
-			$self->logmsg('1.13', 'WARNING', 'Subdirectory for temporary file is not on a separate partition than the PGDATA.');
-			$self->{results}{'1.3.4'} = 'FAILURE';
-		}
-		if ($self->{results}{'1.3.4'} ne 'FAILURE')
-		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+			unshift(@checksum_fail, "datname|checksum_failures|checksum_last_failure\n");
+			$self->logdata(@checksum_fail);
 		}
 	}
+	else
+	{
+		$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $self->{pgdata});
+		$self->{results}{'1.3.3'} = 'FAILURE';
+	}
+}
 
-	$self->logmsg('1.3.5', 'head3', 'Ensure that the PGDATA partition is encrypted');
+sub check_1_3_4
+{
+	my $self = shift;
+
+	my ($major, $minor) = split(/\./, $self->{cluster});
+
+	# Ensure WALs and temporary files are not on the same partition as the PGDATA
+	my $temp_tbsp = `$self->{psql} -Atc "SHOW temp_tablespaces"`;
+	chomp($temp_tbsp);
+
+	my $wal_links = `ls -la "$self->{pgdata}/pg_wal" | grep "^l" | sed 's/.* -> //'`;
+	chomp($wal_links);
+
+	# FIXME: We assume that a symlink that doesn't point into the PGDATA
+	# which could obviously not be the case.
+	if (!$wal_links || $wal_links !~ m#^/# || $wal_links =~ m#^$self->{pgdata}/#)
+	{
+		$self->logmsg('1.12', 'WARNING', 'Subdirectory pg_wal is not on a separate partition than the PGDATA %s.');
+		$self->{results}{'1.3.4'} = 'FAILURE';
+	}
+	if (!$temp_tbsp || $temp_tbsp !~ m#^/# || $temp_tbsp =~ m#^$self->{pgdata}/#)
+	{
+		$self->logmsg('1.13', 'WARNING', 'Subdirectory for temporary file is not on a separate partition than the PGDATA.');
+		$self->{results}{'1.3.4'} = 'FAILURE';
+	}
+	if ($self->{results}{'1.3.4'} ne 'FAILURE')
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_1_3_5
+{
+	my $self = shift;
+
 	# Verify manually that the PGDATA is on an encrypted partition
 	my @encrypted = `lsblk -f 2>/dev/null | grep -v "^loop"`;
 	if ($#encrypted < 0) {
@@ -595,12 +638,11 @@ sub check_cluster_init
 	$self->logdata(@encrypted);
 }
 
-sub check_version
+sub check_1_4
 {
 	my $self = shift;
 
-	$self->logmsg('1.4', 'head2', 'Ensure PostgreSQL versions are up-to-date');
-
+	# Ensure PostgreSQL versions are up-to-date
 	if ($self->{no_check_pg_version})
 	{
 		$self->logmsg('1.15', 'WARNING', 'PostgreSQL version check was disabled (--no-pg-version-check) can not look for minor version upgrade.');
@@ -619,17 +661,8 @@ sub check_version
 			return;
 		}
 
-		# Why upgrade https://why-upgrade.depesz.com/show?from=16.1&to=16.2
-		my $current = `curl https://www.postgresql.org/ 2>/dev/null | grep 'href="/about/news/postgresql-' | awk -F '"' '{print \$2}' | grep "^/" | sort -u`;
-		chomp($current);
-
-		# ex: /about/news/postgresql-162-156-1411-1314-and-1218-released-2807/
-		$current =~ s/-released.*//;
-		$current =~ s/.*postgresql-//;
-		$current =~ s/and-//;
-
-		my @cur_version = split(/\-/, $current);
-		map { s/^(\d{2})(.*)/$1.$2/; } @cur_version;
+		my @cur_version = `curl https://www.postgresql.org/ 2>/dev/null | grep 'href="/docs/../release-.*.html">Notes' | awk -F '"' '{print \$4}' | sed 's/.*release-\\(.*\\).html/\\1/' | sed 's/-/\\./' | sort -u`;
+		chomp(@cur_version);
 		foreach my $ver (@{ $self->{pkg_ver} })
 		{
 			my ($major, $minor) = split(/\./, $ver);
@@ -643,6 +676,7 @@ sub check_version
 				$self->{results}{'1.4'} = 'FAILURE';
 			}
 		}
+
 		if ($self->{results}{'1.4'} ne 'FAILURE')
 		{
 			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
@@ -650,18 +684,13 @@ sub check_version
 	}
 }
 
-sub check_extensions
+sub check_1_5
 {
 	my $self = shift;
 
-	# Get the list of the database in the PostgreSQL cluster
-	my @dbs = `$self->{psql} -Atc "SELECT datname FROM pg_database WHERE datallowconn ORDER BY 1;"`;
-	chomp(@dbs);
-
-	$self->logmsg('1.5', 'head2', 'Ensure unused PostgreSQL extensions are removed');
 	my $i = 1;
 	$self->{collapse_id}++;
-	foreach my $db (@dbs)
+	foreach my $db (@{$self->{dbs}})
 	{
 		# apply the filter on database to include in the report
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
@@ -685,19 +714,15 @@ sub check_extensions
 	}
 }
 
-sub check_tablespaces
+sub check_1_6
 {
 	my $self = shift;
 
-	$self->logmsg('1.6', 'head2', 'Ensure tablespace location is not inside the PGDATA');
-	my @dest = `ls -la /var/lib/postgresql/15/main/pg_tblspc/ 2>/dev/null | sed 's/.* -> //'`;
+	my @dest = `ls -la $self->{pgdata}/pg_tblspc/ 2>/dev/null | sed 's/.* -> //'`;
 	chomp(@dest);
-	my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
-	chomp($data_dir);
-	$data_dir =~ s#/$##;
 	foreach my $d (@dest)
 	{
-		if ($d =~ m#$data_dir\/#) {
+		if ($d =~ m#$self->{pgdata}\/#) {
 			$self->logmsg('1.16', 'WARNING', 'Tablespace location %s should not be inside the data directory.', $d);
 			$self->{results}{'1.6'} = 'FAILURE';
 		}
@@ -708,13 +733,16 @@ sub check_tablespaces
 	}
 }
 
-sub check_permissions
+sub check_2
+{
+	# do nothing
+}
+
+sub check_2_1
 {
 	my $self = shift;
 
-
 	# Verify the postgres umask
-	$self->logmsg('2.1', 'head2', 'Ensure the file permissions mask is correct');
 	my $umask = `sh -c "umask"`;
 	chomp($umask);
 	if ($umask ne '0077') {
@@ -725,62 +753,78 @@ sub check_permissions
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
-	foreach my $ver (@{ $self->{pkg_ver} })
+}
+
+sub check_2_2
+{
+	my $self = shift;
+
+	# Verify that the PGDATA permissions are correct
+	my ($major, $minor) = split(/\./, $self->{cluster});
+
+	my $perm = `ls -la "$self->{pgdata}" | grep " \\.\$" | awk '{print \$1}'`;
+	chomp($perm);
+	$perm =~ s/\.$//;
+	if ($perm ne 'drwx------') {
+		$self->logmsg('2.2', 'CRITICAL', 'Permissions of the PGDATA (%s) are not secure: %s, must be drwx------.', $self->{pgdata}, $perm);
+		$self->{results}{'2.2'} = 'FAILURE';
+	}
+	else
 	{
-		my ($major, $minor) = split(/\./, $ver);
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
 
-		# Verify that the PGDATA exists and that permissions are correct
-		my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
-		chomp($data_dir);
-		return if (!$data_dir);
+sub check_2_3
+{
+	my $self = shift;
 
-		# Verify that the PGDATA permissions are correct
-		$self->logmsg('2.2', 'head2', 'Check permissions of PGDATA');
-		my $perm = `ls -la "$data_dir" | grep " \\.\$" | awk '{print \$1}'`;
+	# Have a look to the PGDATA to check for symlink or unwanted files
+	my ($major, $minor) = split(/\./, $self->{cluster});
+
+	my @content = `ls -la "$self->{pgdata}/"`;
+	unshift(@content, "$self->{pgdata}/\n");
+	$self->logdata(@content);
+}
+
+sub check_2_4
+{
+	my $self = shift;
+
+	# Verify that the pg_hba.conf file have the right permissions when outside the PGDATA
+	my ($major, $minor) = split(/\./, $self->{cluster});
+
+	$self->logmsg('2.4', 'head2', 'Check permissions of pg_hba.conf');
+	my $pg_hba = `$self->{psql} -Atc "SHOW hba_file"`;
+	chomp($pg_hba);
+	$pg_hba = "$self->{pgdata}/$pg_hba" if ($pg_hba !~ m#^/#);
+	my $perm = `ls -la "$pg_hba" | awk '{print \$1}'`;
+	chomp($perm);
+	$perm =~ s/\.$//;
+	if ($perm ne '-rw-r-----' and $perm ne '-rw-------')
+	{
+		my $parent_dir = $pg_hba;
+		$parent_dir =~ s/\/[^\/]+$//;
+		# check the permission of the parent directory to avoid firing false positive
+		my $dperm = `ls -la "$parent_dir" | grep " \\.\$" | awk '{print \$1}'`;
 		chomp($perm);
 		$perm =~ s/\.$//;
-		if ($perm ne 'drwx------') {
-			$self->logmsg('2.2', 'CRITICAL', 'Permissions of the PGDATA (%s) are not secure: %s, must be drwx------.', $data_dir, $perm);
-			$self->{results}{'2.2'} = 'FAILURE';
-		}
-		else
+		if ($perm ne 'drwx------')
 		{
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
-		}
-
-		# Have a look to the PGDATA to check for symlink or unwanted files
-		$self->logmsg('2.3', 'head2', 'List content of PGDATA to check unwanted files and symlinks');
-		my @content = `ls -la "$data_dir/"`;
-		$self->logdata(@content);
-
-		# Verify that the pg_hba.conf file have the right permissions when outside the PGDATA
-		$self->logmsg('2.4', 'head2', 'Check permissions of pg_hba.conf');
-		my $pg_hba = `$self->{psql} -Atc "SHOW hba_file"`;
-		chomp($pg_hba);
-		$pg_hba = "$data_dir/$pg_hba" if ($pg_hba !~ m#^/#);
-		$perm = `ls -la "$pg_hba" | awk '{print \$1}'`;
-		chomp($perm);
-		$perm =~ s/\.$//;
-		if ($perm ne '-rw-r-----' and $perm ne '-rw-------')
-		{
-			my $parent_dir = $pg_hba;
-			$parent_dir =~ s/\/[^\/]+$//;
-			# check the permission of the parent directory to avoid firing false positive
-			my $dperm = `ls -la "$parent_dir" | grep " \\.\$" | awk '{print \$1}'`;
-			chomp($perm);
-			$perm =~ s/\.$//;
-			if ($perm ne 'drwx------')
-			{
-				$self->logmsg('2.4', 'CRITICAL', 'Permissions of the pg_hba.conf file (%s) are not secure: %s, must be -rw-r----- or -rw-------.', $pg_hba, $perm);
-				$self->{results}{'2.4'} = 'FAILURE';
-			}
-		}
-		if ($self->{results}{'2.4'} ne 'FAILURE') {
-			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+			$self->logmsg('2.4', 'CRITICAL', 'Permissions of the pg_hba.conf file (%s) are not secure: %s, must be -rw-r----- or -rw-------.', $pg_hba, $perm);
+			$self->{results}{'2.4'} = 'FAILURE';
 		}
 	}
+	if ($self->{results}{'2.4'} ne 'FAILURE') {
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
 
-	$self->logmsg('2.5', 'head2', 'Check permissions on Unix Socket');
+sub check_2_5
+{
+	my $self = shift;
+
+	# Check permissions on Unix Socket
 	my @perm_sock = `$self->{psql} -Atc "SHOW unix_socket_permissions;SHOW unix_socket_directories;SHOW port;"`;
 	chomp(@perm_sock);
 	if ($perm_sock[1])
@@ -806,21 +850,31 @@ sub check_permissions
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
-
 }
 
-sub check_log_settings
+sub check_3
+{
+	# do nothing
+}
+
+sub check_3_1
+{
+	# do nothing
+}
+
+sub check_3_1_1
+{
+	# do nothing
+}
+
+sub check_3_1_2
 {
 	my $self = shift;
 
-	$self->logmsg('3.1', 'head2', 'PostgreSQL Logging');
-
-	$self->logmsg('3.1.1', 'head3', 'Logging Rationale');
-
-	$self->logmsg('3.1.2', 'head3', 'Ensure the log destinations are set correctly');
-	my $log_dest = `$self->{psql} -Atc "SHOW log_destination"`;
-	chomp($log_dest);
-	if (!$log_dest) {
+	# Ensure the log destinations are set correctly
+	$self->{log_destination} = `$self->{psql} -Atc "SHOW log_destination"`;
+	chomp($self->{log_destination});
+	if (!$self->{log_destination}) {
 		$self->logmsg('3.1', 'CRITICAL', 'Setting \'log_destination\' is not set, logging will be lost.');
 		$self->{results}{'3.1.2'} = 'FAILURE';
 	}
@@ -828,15 +882,20 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.3', 'head3', 'Ensure the logging collector is enabled');
-	my $log_collector = `$self->{psql} -Atc "SHOW logging_collector"`;
-	chomp($log_collector);
-	if ($log_collector ne 'on' and $log_dest eq 'syslog') {
+sub check_3_1_3
+{
+	my $self = shift;
+
+	# Ensure the logging collector is enabled
+	$self->{log_collector} = `$self->{psql} -Atc "SHOW logging_collector"`;
+	chomp($self->{log_collector});
+	if ($self->{log_collector} ne 'on' and $self->{log_destination} eq 'syslog') {
 		$self->logmsg('3.2', 'WARNING', 'Setting \'logging_collector\' should be enabled instead of using syslog.');
 		$self->{results}{'3.1.3'} = 'FAILURE';
 	}
-	if ($log_collector ne 'on' and ($log_dest ne 'syslog' or $log_dest ne 'stderr')) {
+	if ($self->{log_collector} ne 'on' and ($self->{log_destination} ne 'syslog' or $self->{log_destination} ne 'stderr')) {
 		$self->logmsg('3.3', 'CRITICAL', 'Setting \'logging_collector\' must be enabled when \'log_destination\' is not set to syslog or stderr, logging will be lost.');
 		$self->{results}{'3.1.3'} = 'FAILURE';
 	}
@@ -844,9 +903,15 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.4', 'head3', 'Ensure the log file destination directory is set correctly');
-	if ($log_dest ne 'syslog' && $log_collector eq 'on')
+sub check_3_1_4
+{
+	my $self = shift;
+
+
+	# Ensure the log file destination directory is set correctly
+	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
 		my $log_dir = `$self->{psql} -Atc "SHOW log_directory"`;
 		chomp($log_dir);
@@ -863,9 +928,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.5', 'head3', 'Ensure the filename pattern for log files is set correctly');
-	if ($log_dest ne 'syslog' && $log_collector eq 'on')
+sub check_3_1_5
+{
+	my $self = shift;
+
+	# Ensure the filename pattern for log files is set correctly
+	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
 		my $log_filename = `$self->{psql} -Atc "SHOW log_filename"`;
 		chomp($log_filename);
@@ -879,9 +949,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.6', 'head3', 'Ensure the log file permissions are set correctly');
-	if ($log_dest ne 'syslog' && $log_collector eq 'on')
+sub check_3_1_6
+{
+	my $self = shift;
+
+	# Ensure the log file permissions are set correctly
+	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
 		my $log_mode = `$self->{psql} -Atc "SHOW log_file_mode"`;
 		chomp($log_mode);
@@ -898,9 +973,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.7', 'head3', 'Ensure \'log_truncate_on_rotation\' is enabled');
-	if ($log_dest ne 'syslog' && $log_collector eq 'on')
+sub check_3_1_7
+{
+	my $self = shift;
+
+	# Ensure 'log_truncate_on_rotation' is enabled
+	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
 		my $log_truncate = `$self->{psql} -Atc "SHOW log_truncate_on_rotation"`;
 		chomp($log_truncate);
@@ -917,9 +997,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.8', 'head3', 'Ensure the maximum log file lifetime is set correctly');
-	if ($log_dest ne 'syslog' && $log_collector eq 'on')
+sub check_3_1_8
+{
+	my $self = shift;
+
+	# Ensure the maximum log file lifetime is set correctly
+	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
 		my $log_age = `$self->{psql} -Atc "SHOW log_rotation_age"`;
 		chomp($log_age);
@@ -929,9 +1014,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.9', 'head3', 'Ensure the maximum log file size is set correctly');
-	if ($log_dest ne 'syslog' && $log_collector eq 'on')
+sub check_3_1_9
+{
+	my $self = shift;
+
+	# Ensure the maximum log file size is set correctly
+	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
 		my $log_size = `$self->{psql} -Atc "SHOW log_rotation_size"`;
 		chomp($log_size);
@@ -941,9 +1031,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.10', 'head3', 'Ensure the correct syslog facility is selected (Manual)');
-	if ($log_dest eq 'syslog')
+sub check_3_1_10
+{
+	my $self = shift;
+
+	# Ensure the correct syslog facility is selected (Manual)
+	if ($self->{log_destination} eq 'syslog')
 	{
 		my $log_facility = `$self->{psql} -Atc "SHOW syslog_facility"`;
 		chomp($log_facility);
@@ -953,9 +1048,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.11', 'head3', 'Ensure syslog messages are not suppressed');
-	if ($log_dest eq 'syslog')
+sub check_3_1_11
+{
+	my $self = shift;
+
+	# Ensure syslog messages are not suppressed
+	if ($self->{log_destination} eq 'syslog')
 	{
 		my $log_seq = `$self->{psql} -Atc "SHOW syslog_sequence_numbers"`;
 		chomp($log_seq);
@@ -972,9 +1072,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.12', 'head3', 'Ensure syslog messages are not lost due to size');
-	if ($log_dest eq 'syslog')
+sub check_3_1_12
+{
+	my $self = shift;
+
+	# Ensure syslog messages are not lost due to size
+	if ($self->{log_destination} eq 'syslog')
 	{
 		my $log_split = `$self->{psql} -Atc "SHOW syslog_split_messages"`;
 		chomp($log_split);
@@ -991,9 +1096,14 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.13', 'head3', 'Ensure the program name for PostgreSQL syslog messages is correct');
-	if ($log_dest eq 'syslog')
+sub check_3_1_13
+{
+	my $self = shift;
+
+	# Ensure the program name for PostgreSQL syslog messages is correct
+	if ($self->{log_destination} eq 'syslog')
 	{
 		my $log_ident = `$self->{psql} -Atc "SHOW syslog_ident"`;
 		chomp($log_ident);
@@ -1003,8 +1113,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.14', 'head3', 'Ensure the correct messages are written to the server log');
+sub check_3_1_14
+{
+	my $self = shift;
+
+	# Ensure the correct messages are written to the server log
 	my $log_min_messages = `$self->{psql} -Atc "SHOW log_min_messages"`;
 	chomp($log_min_messages);
 	if ($log_min_messages ne 'warning') {
@@ -1015,8 +1130,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.15', 'head3', 'Ensure the correct SQL statements generating errors are recorded');
+sub check_3_1_15
+{
+	my $self = shift;
+
+	# Ensure the correct SQL statements generating errors are recorded
 	my $log_min_error_statement = `$self->{psql} -Atc "SHOW log_min_error_statement"`;
 	chomp($log_min_error_statement);
 	if ($log_min_error_statement ne 'error') {
@@ -1027,6 +1147,11 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
+
+sub check_3_1_16
+{
+	my $self = shift;
 
 	$self->logmsg('3.1.16', 'head3', 'Ensure \'debug_print_parse\' is disabled');
 	my $debug_print_parse = `$self->{psql} -Atc "SHOW debug_print_parse"`;
@@ -1039,8 +1164,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.17', 'head3', 'Ensure \'debug_print_rewritten\' is disabled');
+sub check_3_1_17
+{
+	my $self = shift;
+
+	# Ensure 'debug_print_rewritten' is disabled
 	my $debug_print_rewritten = `$self->{psql} -Atc "SHOW debug_print_rewritten"`;
 	chomp($debug_print_rewritten);
 	if ($debug_print_rewritten ne 'off') {
@@ -1051,8 +1181,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.18', 'head3', 'Ensure \'debug_print_plan\' is disabled');
+sub check_3_1_18
+{
+	my $self = shift;
+
+	# Ensure 'debug_print_plan' is disabled
 	my $debug_print_plan = `$self->{psql} -Atc "SHOW debug_print_plan"`;
 	chomp($debug_print_plan);
 	if ($debug_print_plan ne 'off') {
@@ -1063,8 +1198,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.19', 'head3', 'Ensure \'debug_pretty_print\' is enabled');
+sub check_3_1_19
+{
+	my $self = shift;
+
+	# Ensure 'debug_pretty_print' is enabled
 	my $debug_pretty_print = `$self->{psql} -Atc "SHOW debug_pretty_print"`;
 	chomp($debug_pretty_print);
 	if ($debug_pretty_print eq 'off') {
@@ -1075,8 +1215,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.20', 'head3', 'Ensure \'log_connections\' is enabled');
+sub check_3_1_20
+{
+	my $self = shift;
+
+	# Ensure 'log_connections' is enabled
 	my $log_connections = `$self->{psql} -Atc "SHOW log_connections"`;
 	chomp($log_connections);
 	if ($log_connections eq 'off') {
@@ -1087,8 +1232,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.21', 'head3', 'Ensure \'log_disconnections\' is enabled');
+sub check_3_1_21
+{
+	my $self = shift;
+
+	# Ensure 'log_disconnections' is enabled
 	my $log_disconnections = `$self->{psql} -Atc "SHOW log_disconnections"`;
 	chomp($log_disconnections);
 	if ($log_disconnections eq 'off') {
@@ -1099,8 +1249,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.22', 'head3', 'Ensure \'log_error_verbosity\' is set correctly');
+sub check_3_1_22
+{
+	my $self = shift;
+
+	# Ensure 'log_error_verbosity' is set correctly
 	my $log_error_verbosity = `$self->{psql} -Atc "SHOW log_error_verbosity"`;
 	chomp($log_error_verbosity);
 	if ($log_error_verbosity ne 'verbose') {
@@ -1111,8 +1266,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.23', 'head3', 'Ensure \'log_hostname\' is set correctly');
+sub check_3_1_23
+{
+	my $self = shift;
+
+	# Ensure 'log_hostname' is set correctly
 	my $log_hostname = `$self->{psql} -Atc "SHOW log_hostname"`;
 	chomp($log_hostname);
 	if ($log_hostname ne 'off') {
@@ -1123,11 +1283,16 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.24', 'head3', 'Ensure \'log_line_prefix\' is set correctly');
+sub check_3_1_24
+{
+	my $self = shift;
+
+	# Ensure 'log_line_prefix' is set correctly
 	my $log_line_prefix = `$self->{psql} -Atc "SHOW log_line_prefix"`;
 	chomp($log_line_prefix);
-	if ($log_dest ne 'syslog')
+	if ($self->{log_destination} ne 'syslog')
 	{
 		my $all_found = 1;
 		$all_found = 0 if ($log_line_prefix !~ /\%[tmn]/ or $log_line_prefix !~ /\%[pc]/
@@ -1147,8 +1312,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.25', 'head3', 'Ensure \'log_statement\' is set correctly');
+sub check_3_1_25
+{
+	my $self = shift;
+
+	# Ensure 'log_statement' is set correctly
 	my $log_statement = `$self->{psql} -Atc "SHOW log_statement"`;
 	chomp($log_statement);
 	if ($log_statement eq 'none') {
@@ -1159,8 +1329,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.26', 'head3', 'Ensure \'log_timezone\' is set correctly');
+sub check_3_1_26
+{
+	my $self = shift;
+
+	# Ensure 'log_timezone' is set correctly
 	my $log_timezone = `$self->{psql} -Atc "SHOW log_timezone"`;
 	chomp($log_timezone);
 	if (!grep(/^$log_timezone$/i, 'GMT', 'UTC')) {
@@ -1171,16 +1346,18 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.1.27', 'head3', 'Ensure that log_directory is outside the PGDATA');
-	if ($log_dest ne 'syslog' and $log_collector eq 'on')
+sub check_3_1_27
+{
+	my $self = shift;
+
+	# Ensure that log_directory is outside the PGDATA
+	if ($self->{log_destination} ne 'syslog' and $self->{log_collector} eq 'on')
 	{
-		my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
-		chomp($data_dir);
-		$data_dir =~ s#/$##;
 		my $log_dir = `$self->{psql} -Atc "SHOW log_directory"`;
 		chomp($log_dir);
-		if ($log_dir !~ m#^/# or $log_dir =~ m#^$data_dir/#) {
+		if ($log_dir !~ m#^/# or $log_dir =~ m#^$self->{pgdata}/#) {
 			$self->logmsg('3.4', 'WARNING', 'Setting \'log_directory\' should use a location that is not in the PGDATA.');
 			$self->{results}{'3.1.27'} = 'FAILURE';
 		}
@@ -1193,8 +1370,13 @@ sub check_log_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('3.2', 'head2', 'Ensure the PostgreSQL Audit Extension (pgAudit) is enabled');
+sub check_3_2
+{
+	my $self = shift;
+
+	# Ensure the PostgreSQL Audit Extension (pgAudit) is enabled
 	my $pgaudit = `$self->{psql} -Atc "SHOW shared_preload_libraries;"`;
 	chomp($pgaudit);
 	if ($pgaudit !~ m#pgaudit#) {
@@ -1216,30 +1398,41 @@ sub check_log_settings
 	}
 }
 
-sub check_user_access
+sub check_4
+{
+	# do nothing
+}
+
+sub check_4_1
+{
+	# do nothing
+}
+
+sub check_4_2
 {
 	my $self = shift;
 
-	#$self->logmsg('4.1', 'head2', 'Ensure sudo is configured correctly (Manual)');
-	$self->logmsg('4.2', 'head2', 'Ensure excessive administrative privileges are revoked');
-	my @privs = `$self->{psql} -Atc "\\du+"`;
-	my @superusers = grep(/superuser/i, @privs);
-	if ($#superusers > 0)
+	# Ensure excessive administrative privileges are revoked
+	my @tmp = `$self->{psql} -Atc "\\du+"`;
+	@{$self->{superusers}} = grep(/superuser/i, @tmp);
+	if ($#{$self->{superusers}} > 0)
 	{
 		$self->logmsg('4.2', 'WARNING', 'There are more than one PostgreSQL superuser.');
 		$self->{results}{'4.2'} = 'FAILURE';
 	}
-	unshift(@superusers, "Role|Attributs|Description\n");
-	$self->logdata(@superusers);
+	unshift(@{$self->{superusers}}, "Role|Attributs|Description\n");
+	$self->logdata(@{$self->{superusers}});
+	map { s/\|.*//; } @{$self->{superusers}};
+}
 
-	# Get the list of the database in the PostgreSQL cluster
-	my @dbs = `$self->{psql} -Atc "SELECT datname FROM pg_database WHERE datallowconn ORDER BY 1;"`;
-	chomp(@dbs);
+sub check_4_3
+{
+	my $self = shift;
 
-	$self->logmsg('4.3', 'head2', 'Ensure excessive function privileges are revoked');
+	# Ensure excessive function privileges are revoked
 	my $i = 1;
 	$self->{collapse_id}++;
-	foreach my $db (@dbs)
+	foreach my $db (@{$self->{dbs}})
 	{
 		# apply the filter on database to include in the report
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
@@ -1261,11 +1454,16 @@ sub check_user_access
 			$self->{collapse_id}++;
 		}
 	}
+}
 
-	$self->logmsg('4.4', 'head2', 'Ensure excessive DML privileges are revoked');
-	$i = 1;
+sub check_4_4
+{
+	my $self = shift;
+
+	# Ensure excessive DML privileges are revoked
+	my $i = 1;
 	$self->{collapse_id}++;
-	foreach my $db (@dbs)
+	foreach my $db (@{$self->{dbs}})
 	{
 		# apply the filter on database to include in the report
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
@@ -1297,9 +1495,14 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 			$i++;
 		}
 	}
+}
 
-	$self->logmsg('4.5', 'head2', 'Ensure Row Level Security (RLS) is configured correctly');
-	my @bypassrls = grep(!/Superuser/, grep(/Bypass RLS/i, @privs));
+sub check_4_5
+{
+	my $self = shift;
+
+	# Ensure Row Level Security (RLS) is configured correctly
+	my @bypassrls = grep(!/Superuser/, grep(/Bypass RLS/i, @{$self->{dbs}}));
 	if ($#bypassrls > 0)
 	{
 		$self->logmsg('4.5', 'WARNING', 'Some PostgreSQL user have Bypass RLS enabled.');
@@ -1311,9 +1514,9 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 
-	$i = 1;
+	my $i = 1;
 	$self->{collapse_id}++;
-	foreach my $db (@dbs)
+	foreach my $db (@{$self->{dbs}})
 	{
 		# apply the filter on database to include in the report
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
@@ -1335,8 +1538,13 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 			$i++;
 		}
 	}
+}
 
-	$self->logmsg('4.6', 'head2', 'Ensure the set_user extension is installed');
+sub check_4_6
+{
+	my $self = shift;
+
+	# Ensure the set_user extension is installed
 	my $set_user = `$self->{psql} -Atc "SHOW shared_preload_libraries;"`;
 	chomp($set_user);
 	if ($set_user !~ m#set_user#) {
@@ -1355,19 +1563,30 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 	my @canlogin = `$self->{psql} -Atc "SELECT ro.rolname, ro.roloid, ro.rolcanlogin, ro.rolsuper, ro.rolparents FROM pgdsat_roletree ro WHERE (ro.rolcanlogin AND ro.rolsuper) OR ( ro.rolcanlogin AND EXISTS ( SELECT TRUE FROM pgdsat_roletree ri WHERE ri.rolname = ANY (ro.rolparents) AND ri.rolsuper)) ORDER BY 1;"`;
 	unshift(@canlogin, join('|', qw/rolname roloid rolcanlogin rolsuper rolparents/) . "\n");
 	$self->logdata(@canlogin);
+}
 
-	$self->logmsg('4.7', 'head2', 'Make use of predefined roles');
+sub check_4_7
+{
+	my $self = shift;
+
+	# Make use of predefined roles
 	my @pgrole = `$self->{psql} -Atc "SELECT r.rolname, r.roloid, r.rolcanlogin, r.rolsuper, r.rolparents FROM pgdsat_roletree r WHERE r.rolparents::text ~ 'pg_*' ORDER BY 1;"`;
 	unshift(@pgrole, join('|', qw/rolname roloid rolcanlogin rolsuper rolparents/) . "\n");
 	$self->logdata(@pgrole);
 
 	# Drop our audit view
 	`$self->{psql} -Atc "DROP VIEW pgdsat_roletree;"`;
+}
 
-	$self->logmsg('4.8', 'head2', 'Ensuse the public schema is protected');
+sub check_4_8
+{
+	my $self = shift;
+
+	# Ensure the public schema is protected
 
 	$self->{collapse_id}++;
-	foreach my $db (@dbs)
+	my $i = 1;
+	foreach my $db (@{$self->{dbs}})
 	{
 		# apply the filter on database to include in the report
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
@@ -1395,16 +1614,18 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
-
-	return @superusers;
 }
 
-sub check_connection
+sub check_5
 {
-	my ($self, @superusers) = @_;
+	# do nothing
+}
 
-	map { s/\|.*//; } @superusers;
+sub check_5_1
+{
+	my $self = shift;
 
+	# Ensure login via "local" UNIX Domain Socket is configured correctly
 	my $hba_file = `$self->{psql} -Atc "SHOW hba_file;"`;
 	chomp($hba_file);
 	if (!$hba_file || !-e $hba_file) {
@@ -1413,11 +1634,10 @@ sub check_connection
 		return 0;
 	}
 
-	my @hba_entries = $self->load_pg_hba_file($hba_file);
+	@{$self->{hba_entries}} = $self->load_pg_hba_file($hba_file);
 
-	$self->logmsg('5.1', 'head2', 'Ensure login via "local" UNIX Domain Socket is configured correctly');
 	my $num_err = 0;
-	foreach my $hba_entry (@hba_entries)
+	foreach my $hba_entry (@{$self->{hba_entries}})
 	{
 		next if ($hba_entry->{type} ne 'local');
 		$num_err += $self->check_auth_method($hba_entry);
@@ -1426,16 +1646,26 @@ sub check_connection
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('5.2', 'head2', 'Ensure login via "host" TCP/IP Socket is configured correctly');
-	$num_err = 0;
-	foreach my $hba_entry (@hba_entries)
+sub check_5_2
+{
+	my $self = shift;
+
+	# Ensure login via "host" TCP/IP Socket is configured correctly
+	my $num_err = 0;
+	foreach my $hba_entry (@{$self->{hba_entries}})
 	{
 		next if ($hba_entry->{type} eq 'local');
 		$num_err += $self->check_auth_method($hba_entry);
 	}
+}
 
-	$self->logmsg('5.3', 'head2', 'Ensure Password Complexity is configured');
+sub check_5_3
+{
+	my $self = shift;
+
+	# Ensure Password Complexity is configured
 
 	# Check that a library to password complexity enforcement is loaded (not that it is well configured)
 	# Only useful if the authentication method is md5 or scram
@@ -1454,8 +1684,13 @@ sub check_connection
 			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 		}
 	}
+}
 
-	$self->logmsg('5.4', 'head2', 'Ensure authentication timeout and delay are well configured');
+sub check_5_4
+{
+	my $self = shift;
+
+	# Ensure authentication timeout and delay are well configured
 
 	# Check timeout in the authentication process.
 	my $auth_timeout = `$self->{psql} -Atc "select setting from pg_settings where name='authentication_timeout'"`;
@@ -1476,10 +1711,15 @@ sub check_connection
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('5.5', 'head2', 'Ensure SSL is used for client connection');
+sub check_5_5
+{
+	my $self = shift;
+
+	# Ensure SSL is used for client connection
 	my @ssl_msg = ();
-	foreach my $hba_entry (@hba_entries)
+	foreach my $hba_entry (@{$self->{hba_entries}})
 	{
 		next if ($hba_entry->{type} eq 'local');
 		my $msg = $self->check_ssl_conn($hba_entry);
@@ -1501,16 +1741,26 @@ sub check_connection
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('5.6', 'head2', 'Ensure authorized Ip addresses ranges are not too large');
-	foreach my $hba_entry (@hba_entries)
+sub check_5_6
+{
+	my $self = shift;
+
+	# Ensure authorized Ip addresses ranges are not too large
+	foreach my $hba_entry (@{$self->{hba_entries}})
 	{
 		$self->check_ip_address($hba_entry);
 	}
+}
 
-	$self->logmsg('5.7', 'head2', 'Ensure specific database and users are used');
-	$num_err = 0;
-	foreach my $hba_entry (@hba_entries)
+sub check_5_7
+{
+	my $self = shift;
+
+	# Ensure specific database and users are used
+	my $num_err = 0;
+	foreach my $hba_entry (@{$self->{hba_entries}})
 	{
 		next if ($hba_entry->{type} eq 'local');
 		$num_err += $self->check_all_conn($hba_entry);
@@ -1519,20 +1769,30 @@ sub check_connection
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('5.8', 'head2', 'Ensure superusers are not allowed to connect remotely');
-	$num_err = 0;
-	foreach my $hba_entry (@hba_entries)
+sub check_5_8
+{
+	my $self = shift;
+
+	# Ensure superusers are not allowed to connect remotely
+	my $num_err = 0;
+	foreach my $hba_entry (@{$self->{hba_entries}})
 	{
 		next if ($hba_entry->{type} eq 'local');
-		$num_err += $self->check_superuser($hba_entry, @superusers);
+		$num_err += $self->check_superuser($hba_entry, @{ $self->{superusers} });
 	}
 	if (!$num_err)
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('5.9', 'head2', 'Ensure that \'password_encryption\' is correctly set');
+sub check_5_9
+{
+	my $self = shift;
+
+	# Ensure that \'password_encryption\' is correctly set
 	my $pwd_enc_type = `$self->{psql} -Atc "SHOW password_encryption;"`;
 	chomp($pwd_enc_type);
 	if ($pwd_enc_type ne 'scram-sha-256') {
@@ -1543,8 +1803,6 @@ sub check_connection
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
-
-
 }
 
 sub check_auth_method
@@ -1685,14 +1943,21 @@ sub check_superuser
 	return $found;
 }
 
+sub check_6
+{
+	# do nothing
+}
 
-sub check_pg_settings
+sub check_6_1
+{
+	# do nothing
+}
+
+sub check_6_2
 {
 	my $self = shift;
 
-	#$self->logmsg('6.1', 'head2', 'Understanding attack vectors and runtime parameters');
-
-	$self->logmsg('6.2', 'head2', 'Ensure \'backend\' runtime parameters are configured correctly');
+	# Ensure 'backend' runtime parameters are configured correctly
 	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context IN ('backend','superuser-backend') ORDER BY 1;"`;
 	chomp(@ret);
 	my %backend_settings =();
@@ -1727,29 +1992,54 @@ sub check_pg_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('6.3', 'head2', 'Ensure \'Postmaster\' runtime parameters are configured correctly');
-	@ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'postmaster' ORDER BY 1;"`;
+sub check_6_3
+{
+	my $self = shift;
+
+	# Ensure 'Postmaster' runtime parameters are configured correctly
+	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'postmaster' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
+}
 
-	$self->logmsg('6.4', 'head2', 'Ensure \'SIGHUP\' runtime parameters are configured correctly');
-	@ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'sighup' ORDER BY 1;"`;
+sub check_6_4
+{
+	my $self = shift;
+
+	# Ensure 'SIGHUP' runtime parameters are configured correctly
+	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'sighup' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
+}
 
-	$self->logmsg('6.5', 'head2', 'Ensure \'Superser\' runtime parameters are configured correctly');
-	@ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'superuser' ORDER BY 1;"`;
+sub check_6_5
+{
+	my $self = shift;
+
+	# Ensure 'Superser' runtime parameters are configured correctly
+	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'superuser' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
+}
 
-	$self->logmsg('6.6', 'head2', 'Ensure \'User\' runtime parameters are configured correctly');
-	@ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'user' ORDER BY 1;"`;
+sub check_6_6
+{
+	my $self = shift;
+
+	# Ensure 'User' runtime parameters are configured correctly
+	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'user' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
+}
 
-	$self->logmsg('6.7', 'head2', 'Ensure FIPS 140-2 OpenSSL cryptography is used');
-	@ret = `fips-mode-setup --check 2>/dev/null`;
+sub check_6_7
+{
+	my $self = shift;
+
+	# Ensure FIPS 140-2 OpenSSL cryptography is used
+	my @ret = `fips-mode-setup --check 2>/dev/null`;
 	if (!grep(/FIPS mode is enabled/, @ret))
 	{
 		$self->logmsg('6.5', 'CRITICAL', 'Installation of FIPS modules is not completed.');
@@ -1763,8 +2053,13 @@ sub check_pg_settings
 	# Show SSL version
 	@ret = `openssl version`;
 	$self->logdata(@ret);
+}
 
-	$self->logmsg('6.8', 'head2', 'Ensure TLS is enabled and configured correctly');
+sub check_6_8
+{
+	my $self = shift;
+
+	# Ensure TLS is enabled and configured correctly
 	my $ssl = `$self->{psql} -Atc "SHOW ssl;"`;
 	chomp($ssl);
 	if ($ssl ne 'on') {
@@ -1797,8 +2092,13 @@ sub check_pg_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('6.9', 'head2', 'Ensure a cryptographic extension is installed');
+sub check_6_9
+{
+	my $self = shift;
+
+	# Ensure a cryptographic extension is installed
 	my @has_crypto = `$self->{psql} -Atc "select * from pg_available_extensions where name='pgcrypto' or name='pgsodium'"`;
 	chomp(@has_crypto);
 	if ($#has_crypto < 0) {
@@ -1809,6 +2109,11 @@ sub check_pg_settings
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
+
+sub check_6_10
+{
+	my $self = shift;
 
 	$self->logmsg('6.10', 'head2', 'Ensure a data anonymization extension is installed');
 	my $has_anon = `$self->{psql} -Atc "SHOW session_preload_libraries;"`;
@@ -1824,11 +2129,16 @@ sub check_pg_settings
 	}
 }
 
-sub check_replication
+sub check_7
+{
+	# nothing to do
+}
+
+sub check_7_1
 {
 	my $self = shift;
 
-	$self->logmsg('7.1', 'head2', 'Ensure a replication-only user is created and used for streaming replication');
+	# Ensure a replication-only user is created and used for streaming replication
 	my @repusers = `$self->{psql} -Atc "select rolname from pg_roles where rolreplication is true;"`;
 	chomp(@repusers);
 	# Check if there's any replication user outside the postgres superuser
@@ -1840,8 +2150,13 @@ sub check_replication
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('7.2', 'head2', 'Ensure logging of replication commands is configured');
+sub check_7_2
+{
+	my $self = shift;
+
+	# Ensure logging of replication commands is configured
 	my $log_rep = `$self->{psql} -Atc "SHOW log_replication_commands;"`;
 	chomp($log_rep);
 	if ($log_rep eq 'off') {
@@ -1852,10 +2167,18 @@ sub check_replication
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('7.3', 'head2', 'Ensure base backups are configured and functional');
+sub check_7_3
+{
+	# nothing to do
+}
 
-	$self->logmsg('7.4', 'head2', 'Ensure WAL archiving is configured and functional');
+sub check_7_4
+{
+	my $self = shift;
+
+	# Ensure WAL archiving is configured and functional
 	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE name ~ '^archive' ORDER BY 1;"`;
 	chomp(@ret);
 	my %archive_settings = ();
@@ -1880,8 +2203,13 @@ sub check_replication
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
+}
 
-	$self->logmsg('7.5', 'head2', 'Ensure streaming replication parameters are configured correctly');
+sub check_7_5
+{
+	my $self = shift;
+
+	# Ensure streaming replication parameters are configured correctly
 	my $ret = `$self->{psql} -Atc "SHOW primary_conninfo;"`;
 	chomp($ret);
 	if ($ret !~ /sslmode=require/) {
@@ -1901,13 +2229,21 @@ sub check_replication
 	}
 }
 
-sub check_special_conf
+sub check_8
+{
+	# nothing to do
+}
+
+sub check_8_1
+{
+	# nothing to do
+}
+
+sub check_8_2
 {
 	my $self = shift;
 
-	$self->logmsg('8.1', 'head2', 'Ensure PostgreSQL subdirectory locations are outside the data cluster');
-
-	$self->logmsg('8.2', 'head2', 'Ensure the backup and restore tool, \'pgBackRest\', is installed and configured');
+	# Ensure the backup and restore tool, \'pgBackRest\', is installed and configured
 	my @ret = `pgbackrest info 2>/dev/null`;
 	if ($#ret < 0) {
 		$self->logmsg('8.2', 'WARNING', 'The backup tool \'pgBackRest\' is not installed.');
@@ -1921,8 +2257,14 @@ sub check_special_conf
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 
-	$self->logmsg('8.3', 'head2', 'Ensure miscellaneous configuration settings are correct');
-	@ret = `$self->{psql} -Atc "select name, setting from pg_settings where name in ('external_pid_file', 'unix_socket_directories','shared_preload_libraries','dynamic_library_path','local_preload_libraries','session_preload_libraries');"`;
+}
+
+sub check_8_3
+{
+	my $self = shift;
+
+	# Ensure miscellaneous configuration settings are correct
+	my @ret = `$self->{psql} -Atc "select name, setting from pg_settings where name in ('external_pid_file', 'unix_socket_directories','shared_preload_libraries','dynamic_library_path','local_preload_libraries','session_preload_libraries');"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
 }

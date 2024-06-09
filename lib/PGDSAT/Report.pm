@@ -195,6 +195,12 @@ sub resume_as_text
 			} keys %{ $PGDSAT::Labels::AUDIT_LBL{$self->{lang}} } )
 	{
 		next if (!exists $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{title});
+		my $skip_check = 0;
+		foreach my $r (@{$self->{remove}}) {
+			$skip_check = 1 if (grep(/^$r$/, $level));
+		}
+		next if ($skip_check == 1);
+
 		my $manual = ' (Manual)';
 		$manual = '' if (!$PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{manual});
 		$self->{content} .= "$level - $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{title}$manual";
@@ -232,6 +238,12 @@ sub resume_as_html
 			} keys %{ $PGDSAT::Labels::AUDIT_LBL{$self->{lang}} } )
 	{
 		next if (!exists $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{title});
+		my $skip_check = 0;
+		foreach my $r (@{$self->{remove}}) {
+			$skip_check = 1 if (grep(/^$r$/, $level));
+		}
+		next if ($skip_check == 1);
+
 		my $manual = ' (Manual)';
 		$manual = '' if (!$PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{manual});
 		my $num = () = $level =~ /\./g;

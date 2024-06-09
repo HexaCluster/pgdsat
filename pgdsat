@@ -64,6 +64,7 @@ my @options = (
 	'user|U=s',
 	'help!',
 	'no-pg-version-check!',
+	'remove|r=s@',
 );
 my %cfg = ();
 
@@ -140,6 +141,8 @@ Options:
     -o | --output  : output file where to write the report. Default stdout.
     -p | --port    : port where PostgreSQL is listening, default: 5432.
     -P | --psql    : full path to the psql command if not found in PATH.
+    -r | --remove  : check to remove from the report, it can be used multiple
+                     time. The value can be the number of a check or a regexp.
     -T | --title   : set title to use to differentiate the reports. Default is
                      to use "on `hostname`".
     -U | --user    : PostgreSQL user to use with the psql command.
@@ -159,6 +162,10 @@ If you have several PostgreSQL cluster installed you must give the running
 version that you want to test:
 
     pgdsat -U postgres -h localhost -d postgres -f html -V 15.4 > report.html
+
+If you want, for example, to remove all checks of section 1 from the report:
+
+    pgdsat -U postgres -h localhost -d postgres -V 15.4 -o report.html -r '1.*'
 
 };
 
