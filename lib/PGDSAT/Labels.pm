@@ -264,7 +264,7 @@ PostgreSQL processes will be lost.',
 			'manual' => 1,
 		},
 		'4.8' => {
-			'title' => 'Ensuse the public schema is protected',
+			'title' => 'Ensure the public schema is protected',
 			'description' => 'Privileges on the PostgreSQL default public schema must be restricted to some users, grant to public users must be removed or the schema dropped.',
 		},
 #---------------------------
