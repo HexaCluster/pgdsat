@@ -138,11 +138,6 @@ sub _init
 	{
 		$data_dir =~ s/\/$//;
 		$self->{pgdata} = $data_dir;
-		my $base_ver = `ls -la "$data_dir/PG_VERSION" 2>&1`;
-		my $status = $? >> 8;
-		if ($status != 0) {
-			die "FATAL: can not read data directory $data_dir, insuffisient privilege.\n";
-		}
 	}
 
 	# Get the list of the database in the PostgreSQL cluster
@@ -536,8 +531,15 @@ sub check_1_3_1
 
 	my ($major, $minor) = split(/\./, $self->{cluster});
 
+	# Check that we have permission to read the PGDATA
+	my $base_ver = `ls -la "$self->{pgdata}/PG_VERSION" 2>&1`;
+	my $status = $? >> 8;
+	if ($status != 0) {
+		die "FATAL: can not read data directory $self->{pgdata}, insuffisient privilege.\n";
+	}
+
 	# Verify that the PGDATA is initialized
-	my $base_ver = `find "$self->{pgdata}/base/" -name PG_VERSION 2>/dev/null | xargs -i cat {} | sort -u`;
+	$base_ver = `find "$self->{pgdata}/base/" -name PG_VERSION 2>/dev/null | xargs -i cat {} | sort -u`;
 	chomp($base_ver);
 	if (!$base_ver) {
 		$self->logmsg('1.9', 'CRITICAL', 'Wrong or no base directory found, the PGDATA (%s) must be initialized first (see initdb).', $self->{pgdata});
