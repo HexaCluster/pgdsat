@@ -197,6 +197,7 @@ sub resume_as_text
 		next if (!exists $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{title});
 		my $skip_check = 0;
 		foreach my $r (@{$self->{remove}}) {
+			$r =~ s/^\^//;
 			$skip_check = 1 if (grep(/^$r$/, $level));
 		}
 		next if ($skip_check == 1);
@@ -240,6 +241,7 @@ sub resume_as_html
 		next if (!exists $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{title});
 		my $skip_check = 0;
 		foreach my $r (@{$self->{remove}}) {
+			$r =~ s/^\^//;
 			$skip_check = 1 if (grep(/^$r$/, $level));
 		}
 		next if ($skip_check == 1);
