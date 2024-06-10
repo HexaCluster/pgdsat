@@ -94,8 +94,8 @@ $cfg{format} = 'html' if (!$cfg{format});
 # Set default title
 $cfg{title} ||= 'on ' . &get_hostname();
 
-# Verify that psql, systemctl, pg_controldata, curl and lsblk are available from PATH
-foreach my $c (qw/psql systemctl pg_controldata curl lsblk/)
+# Verify that psql, systemctl, curl and lsblk are available from PATH
+foreach my $c (qw/psql systemctl curl lsblk/)
 {
 	next if ($cfg{'no-pg-version-check'} && $c eq 'curl');
 	`which $c 2>/dev/null`;

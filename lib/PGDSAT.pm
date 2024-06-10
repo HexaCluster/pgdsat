@@ -575,9 +575,9 @@ sub check_1_3_3
 	my ($major, $minor) = split(/\./, $self->{cluster});
 
 	# Verify that checksum are enabled (HexaCluster)
-	my $checksum = `pg_controldata "$self->{pgdata}" 2>/dev/null | grep "Data page checksum version" | sed 's/.* //'`;
+	my $checksum = `$self->{psql} -Atc "SELECT setting FROM pg_settings WHERE name IN ('data_checksums')"`;
 	chomp($checksum);
-	if ($checksum)
+	if ($checksum eq 'on')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 		# Show stats about checksum failure if any
