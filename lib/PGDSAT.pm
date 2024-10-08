@@ -58,7 +58,6 @@ sub _init
 	$self->{collapse_id} = 0;
 	$self->{content} = '';
 	$self->{details} = '';
-	$self->{pkg_ver} = ();
 
 	####
 	# From command line options
@@ -89,6 +88,7 @@ sub _init
 	$self->{superusers}  = ();
 	$self->{dbs}         = ();
 	$self->{privs}       = ();
+	$self->{pkg_ver}     = ();
 
 	$self->{log_destination} = '';
 	$self->{log_collector} = '';
@@ -797,7 +797,6 @@ sub check_2_4
 	# Verify that the pg_hba.conf file have the right permissions when outside the PGDATA
 	my ($major, $minor) = split(/\./, $self->{cluster});
 
-	$self->logmsg('2.4', 'head2', 'Check permissions of pg_hba.conf');
 	my $pg_hba = `$self->{psql} -Atc "SHOW hba_file"`;
 	chomp($pg_hba);
 	$pg_hba = "$self->{pgdata}/$pg_hba" if ($pg_hba !~ m#^/#);
