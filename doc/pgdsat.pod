@@ -200,7 +200,7 @@ Options:
                      Can be used multiple time and regexp are supported.
     -f | --format  : output format, can be: text or html. Default: html.
     -h | --host    : PostgreSQL serveur ip address if not listening on localhost
-    -l | --lang    : language used for the output (en_US, fr_FR). Default: en_US
+    -l | --lang    : language used for the output (en_US, fr_FR, zh_CN). Default: en_US
     -o | --output  : output file where to write the report. Default stdout.
     -p | --port    : port where PostgreSQL is listening, default: 5432.
     -P | --psql    : full path to the psql command if not found in PATH.
