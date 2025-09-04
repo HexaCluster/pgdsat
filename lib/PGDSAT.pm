@@ -69,7 +69,7 @@ sub _init
 	# Cluster to scan if there are several ones running
 	$self->{cluster} = $options{cluster} || '';
 	# No check for PG version
-	$self->{no_check_pg_version} = $options{no_check_pg_version} || 0;
+	$self->{no_pg_version_check} = $options{'no-pg-version-check'} || 0;
 	# Output file
 	$self->{output} = $options{output} || '-';
 	# Label to use in the title of the report
@@ -646,7 +646,7 @@ sub check_1_4
 	my $self = shift;
 
 	# Ensure PostgreSQL versions are up-to-date
-	if ($self->{no_check_pg_version})
+	if ($self->{no_pg_version_check})
 	{
 		$self->logmsg('1.15', 'WARNING', 'PostgreSQL version check was disabled (--no-pg-version-check) can not look for minor version upgrade.');
 		$self->{results}{'1.4'} = 'FAILURE';
