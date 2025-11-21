@@ -831,7 +831,7 @@ sub check_2_5
 	chomp(@perm_sock);
 	if ($perm_sock[1])
 	{
-		my @sock_dirs = split(/,/, $perm_sock[1]);
+		my @sock_dirs = split(/,\s*/, $perm_sock[1]);
 		map { s/\@//; } @sock_dirs;
 		foreach my $d (@sock_dirs)
 		{
