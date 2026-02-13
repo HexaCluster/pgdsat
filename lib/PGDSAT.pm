@@ -1909,7 +1909,7 @@ sub check_all_conn
 	my ($self, $entry) = @_;
 
 	my $found = 0;
-	if ($entry->{database} eq 'all' or $entry->{user} eq 'all')
+	if ($entry->{method} ne 'reject' and ($entry->{database} eq 'all' or $entry->{user} eq 'all'))
 	{
 		$self->logmsg('5.15', 'WARNING', 'You should be more specific and give the database and users allowed to connect, not "all". See line %s in file %s.', $entry->{method}, $entry->{line}, $entry->{file});
 		$found = 1;
