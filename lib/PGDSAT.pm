@@ -69,7 +69,7 @@ sub _init
 	# Cluster to scan if there are several ones running
 	$self->{cluster} = $options{cluster} || '';
 	# No check for PG version
-	$self->{no_check_pg_version} = $options{no_check_pg_version} || 0;
+	$self->{no_pg_version_check} = $options{'no-pg-version-check'} || 0;
 	# Output file
 	$self->{output} = $options{output} || '-';
 	# Label to use in the title of the report
@@ -117,12 +117,12 @@ sub _init
 	$self->{psql} = 'LANG=C ' . $self->{psql} . ' -X';
 
 	# Verify that the connection user is really superuser
-	my $is_superuwser = `$self->{psql} -Atc "select 1 from pg_roles where rolname = current_user and rolsuper;"`;
+	my $is_superuwser = `$self->{psql} -AtXc "select 1 from pg_roles where rolname = current_user and rolsuper;"`;
 	chomp($is_superuwser);
-	die "FATAL: this program must be run as PostgreSQL superuser: $self->{psql} -Atc ...\n" if (!$is_superuwser);
+	die "FATAL: this program must be run as PostgreSQL superuser: $self->{psql} -AtXc ...\n" if (!$is_superuwser);
 
         # Check that the PostgreSQL have the version specified by --cluster
-        my $ver = `$self->{psql} -Atc "SELECT version();"`;
+        my $ver = `$self->{psql} -AtXc "SELECT version();"`;
         chomp($ver);
 	if ($self->{cluster} and $ver !~ /$self->{cluster}/) {
 		die "FATAL: cluster version $self->{cluster} doesn't match the PostgreSQL version: $ver.\n";
@@ -132,7 +132,7 @@ sub _init
 	@{ $self->{pkg_ver} } = ($self->{cluster}) if ($self->{cluster});
 
 	# Verify that we have permission to read the PGDATA and set $self->{pgdata}
-	my $data_dir = $self->{pgdata} || `$self->{psql} -Atc "SHOW data_directory"`;
+	my $data_dir = $self->{pgdata} || `$self->{psql} -AtXc "SHOW data_directory"`;
 	chomp($data_dir);
 	if ($data_dir)
 	{
@@ -141,7 +141,7 @@ sub _init
 	}
 
 	# Get the list of the database in the PostgreSQL cluster
-	@{$self->{dbs}} = `$self->{psql} -Atc "SELECT datname FROM pg_database WHERE datallowconn ORDER BY 1;"`;
+	@{$self->{dbs}} = `$self->{psql} -AtXc "SELECT datname FROM pg_database WHERE datallowconn ORDER BY 1;"`;
 	chomp(@{$self->{dbs}});
 }
 
@@ -577,13 +577,13 @@ sub check_1_3_3
 	my ($major, $minor) = split(/\./, $self->{cluster});
 
 	# Verify that checksum are enabled (HexaCluster)
-	my $checksum = `$self->{psql} -Atc "SELECT setting FROM pg_settings WHERE name IN ('data_checksums')"`;
+	my $checksum = `$self->{psql} -AtXc "SELECT setting FROM pg_settings WHERE name IN ('data_checksums')"`;
 	chomp($checksum);
 	if ($checksum eq 'on')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 		# Show stats about checksum failure if any
-		my @checksum_fail = `$self->{psql} -Atc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
+		my @checksum_fail = `$self->{psql} -AtXc "SELECT datname,checksum_failures,checksum_last_failure FROM pg_catalog.pg_stat_database WHERE checksum_failures > 0"`;
 		if ($#checksum_fail > 0)
 		{
 			unshift(@checksum_fail, "datname|checksum_failures|checksum_last_failure\n");
@@ -604,7 +604,7 @@ sub check_1_3_4
 	my ($major, $minor) = split(/\./, $self->{cluster});
 
 	# Ensure WALs and temporary files are not on the same partition as the PGDATA
-	my $temp_tbsp = `$self->{psql} -Atc "SHOW temp_tablespaces"`;
+	my $temp_tbsp = `$self->{psql} -AtXc "SHOW temp_tablespaces"`;
 	chomp($temp_tbsp);
 
 	my $wal_links = `ls -la "$self->{pgdata}/pg_wal" | grep "^l" | sed 's/.* -> //'`;
@@ -646,7 +646,7 @@ sub check_1_4
 	my $self = shift;
 
 	# Ensure PostgreSQL versions are up-to-date
-	if ($self->{no_check_pg_version})
+	if ($self->{no_pg_version_check})
 	{
 		$self->logmsg('1.15', 'WARNING', 'PostgreSQL version check was disabled (--no-pg-version-check) can not look for minor version upgrade.');
 		$self->{results}{'1.4'} = 'FAILURE';
@@ -699,7 +699,7 @@ sub check_1_5
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
 		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
 
-		my @extdef = `$self->{psql} -d $db -Atc "\\dx"`;
+		my @extdef = `$self->{psql} -d $db -AtXc "\\dx"`;
 		if ($#extdef >= 0)
 		{
 			$self->logmsg('1.5.' . $i, 'head3', $db);
@@ -797,7 +797,7 @@ sub check_2_4
 	# Verify that the pg_hba.conf file have the right permissions when outside the PGDATA
 	my ($major, $minor) = split(/\./, $self->{cluster});
 
-	my $pg_hba = `$self->{psql} -Atc "SHOW hba_file"`;
+	my $pg_hba = `$self->{psql} -AtXc "SHOW hba_file"`;
 	chomp($pg_hba);
 	$pg_hba = "$self->{pgdata}/$pg_hba" if ($pg_hba !~ m#^/#);
 	my $perm = `ls -la "$pg_hba" | awk '{print \$1}'`;
@@ -827,11 +827,11 @@ sub check_2_5
 	my $self = shift;
 
 	# Check permissions on Unix Socket
-	my @perm_sock = `$self->{psql} -Atc "SHOW unix_socket_permissions;SHOW unix_socket_directories;SHOW port;"`;
+	my @perm_sock = `$self->{psql} -AtXc "SHOW unix_socket_permissions;SHOW unix_socket_directories;SHOW port;"`;
 	chomp(@perm_sock);
 	if ($perm_sock[1])
 	{
-		my @sock_dirs = split(/,/, $perm_sock[1]);
+		my @sock_dirs = split(/,\s*/, $perm_sock[1]);
 		map { s/\@//; } @sock_dirs;
 		foreach my $d (@sock_dirs)
 		{
@@ -874,7 +874,7 @@ sub check_3_1_2
 	my $self = shift;
 
 	# Ensure the log destinations are set correctly
-	$self->{log_destination} = `$self->{psql} -Atc "SHOW log_destination"`;
+	$self->{log_destination} = `$self->{psql} -AtXc "SHOW log_destination"`;
 	chomp($self->{log_destination});
 	if (!$self->{log_destination}) {
 		$self->logmsg('3.1', 'CRITICAL', 'Setting \'log_destination\' is not set, logging will be lost.');
@@ -891,7 +891,7 @@ sub check_3_1_3
 	my $self = shift;
 
 	# Ensure the logging collector is enabled
-	$self->{log_collector} = `$self->{psql} -Atc "SHOW logging_collector"`;
+	$self->{log_collector} = `$self->{psql} -AtXc "SHOW logging_collector"`;
 	chomp($self->{log_collector});
 	if ($self->{log_collector} ne 'on' and $self->{log_destination} eq 'syslog') {
 		$self->logmsg('3.2', 'WARNING', 'Setting \'logging_collector\' should be enabled instead of using syslog.');
@@ -915,7 +915,7 @@ sub check_3_1_4
 	# Ensure the log file destination directory is set correctly
 	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
-		my $log_dir = `$self->{psql} -Atc "SHOW log_directory"`;
+		my $log_dir = `$self->{psql} -AtXc "SHOW log_directory"`;
 		chomp($log_dir);
 		if (!$log_dir) {
 			$self->logmsg('3.4', 'CRITICAL', 'Setting \'log_directory\' must be set, currently writes will be done in / and logging will be lost.');
@@ -939,7 +939,7 @@ sub check_3_1_5
 	# Ensure the filename pattern for log files is set correctly
 	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
-		my $log_filename = `$self->{psql} -Atc "SHOW log_filename"`;
+		my $log_filename = `$self->{psql} -AtXc "SHOW log_filename"`;
 		chomp($log_filename);
 		if (!$log_filename) {
 			$self->logmsg('3.5', 'CRITICAL', 'Setting \'log_filename\' must be set, currently logging will be lost.');
@@ -960,7 +960,7 @@ sub check_3_1_6
 	# Ensure the log file permissions are set correctly
 	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
-		my $log_mode = `$self->{psql} -Atc "SHOW log_file_mode"`;
+		my $log_mode = `$self->{psql} -AtXc "SHOW log_file_mode"`;
 		chomp($log_mode);
 		if ($log_mode ne '0600') {
 			$self->logmsg('3.6', 'WARNING', 'Setting \'log_file_mode\' should be set to \'0600\', current value is %s.', $log_mode);
@@ -984,7 +984,7 @@ sub check_3_1_7
 	# Ensure 'log_truncate_on_rotation' is enabled
 	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
-		my $log_truncate = `$self->{psql} -Atc "SHOW log_truncate_on_rotation"`;
+		my $log_truncate = `$self->{psql} -AtXc "SHOW log_truncate_on_rotation"`;
 		chomp($log_truncate);
 		if ($log_truncate ne 'on') {
 			$self->logmsg('3.7', 'WARNING', 'Setting \'log_truncate_on_rotation\' should be enabled.');
@@ -1008,7 +1008,7 @@ sub check_3_1_8
 	# Ensure the maximum log file lifetime is set correctly
 	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
-		my $log_age = `$self->{psql} -Atc "SHOW log_rotation_age"`;
+		my $log_age = `$self->{psql} -AtXc "SHOW log_rotation_age"`;
 		chomp($log_age);
 		$self->logdata("log_rotation_age = '" . $log_age . "' # Please check with your security policy");
 	}
@@ -1025,7 +1025,7 @@ sub check_3_1_9
 	# Ensure the maximum log file size is set correctly
 	if ($self->{log_destination} ne 'syslog' && $self->{log_collector} eq 'on')
 	{
-		my $log_size = `$self->{psql} -Atc "SHOW log_rotation_size"`;
+		my $log_size = `$self->{psql} -AtXc "SHOW log_rotation_size"`;
 		chomp($log_size);
 		$self->logdata("log_rotation_size = '" . $log_size . "' # Please check with your security policy");
 	}
@@ -1042,7 +1042,7 @@ sub check_3_1_10
 	# Ensure the correct syslog facility is selected (Manual)
 	if ($self->{log_destination} eq 'syslog')
 	{
-		my $log_facility = `$self->{psql} -Atc "SHOW syslog_facility"`;
+		my $log_facility = `$self->{psql} -AtXc "SHOW syslog_facility"`;
 		chomp($log_facility);
 		$self->logdata("syslog_facility = '" . $log_facility . "' # Please check with your security policy");
 	}
@@ -1059,7 +1059,7 @@ sub check_3_1_11
 	# Ensure syslog messages are not suppressed
 	if ($self->{log_destination} eq 'syslog')
 	{
-		my $log_seq = `$self->{psql} -Atc "SHOW syslog_sequence_numbers"`;
+		my $log_seq = `$self->{psql} -AtXc "SHOW syslog_sequence_numbers"`;
 		chomp($log_seq);
 		if ($log_seq ne 'on') {
 			$self->logmsg('3.11', 'WARNING', 'Setting \'syslog_sequence_numbers\' should be enabled, some messages can be lost.');
@@ -1083,7 +1083,7 @@ sub check_3_1_12
 	# Ensure syslog messages are not lost due to size
 	if ($self->{log_destination} eq 'syslog')
 	{
-		my $log_split = `$self->{psql} -Atc "SHOW syslog_split_messages"`;
+		my $log_split = `$self->{psql} -AtXc "SHOW syslog_split_messages"`;
 		chomp($log_split);
 		if ($log_split ne 'on') {
 			$self->logmsg('3.12', 'WARNING', 'Setting \'syslog_split_messages\' should be enabled, some messages can be truncated.');
@@ -1107,7 +1107,7 @@ sub check_3_1_13
 	# Ensure the program name for PostgreSQL syslog messages is correct
 	if ($self->{log_destination} eq 'syslog')
 	{
-		my $log_ident = `$self->{psql} -Atc "SHOW syslog_ident"`;
+		my $log_ident = `$self->{psql} -AtXc "SHOW syslog_ident"`;
 		chomp($log_ident);
 		$self->logdata("syslog_ident = '" . $log_ident . "' # Please check with your security policy");
 	}
@@ -1122,7 +1122,7 @@ sub check_3_1_14
 	my $self = shift;
 
 	# Ensure the correct messages are written to the server log
-	my $log_min_messages = `$self->{psql} -Atc "SHOW log_min_messages"`;
+	my $log_min_messages = `$self->{psql} -AtXc "SHOW log_min_messages"`;
 	chomp($log_min_messages);
 	if ($log_min_messages ne 'warning') {
 		$self->logmsg('3.14', 'WARNING', 'Setting \'log_min_messages\' should be set to \'warning\' to avoid tracing too many or too few messages.');
@@ -1139,7 +1139,7 @@ sub check_3_1_15
 	my $self = shift;
 
 	# Ensure the correct SQL statements generating errors are recorded
-	my $log_min_error_statement = `$self->{psql} -Atc "SHOW log_min_error_statement"`;
+	my $log_min_error_statement = `$self->{psql} -AtXc "SHOW log_min_error_statement"`;
 	chomp($log_min_error_statement);
 	if ($log_min_error_statement ne 'error') {
 		$self->logmsg('3.15', 'WARNING', 'Setting \'log_min_error_statement\' should be set to \'error\' to avoid tracing too many or too few messages.');
@@ -1156,7 +1156,7 @@ sub check_3_1_16
 	my $self = shift;
 
 	$self->logmsg('3.1.16', 'head3', 'Ensure \'debug_print_parse\' is disabled');
-	my $debug_print_parse = `$self->{psql} -Atc "SHOW debug_print_parse"`;
+	my $debug_print_parse = `$self->{psql} -AtXc "SHOW debug_print_parse"`;
 	chomp($debug_print_parse);
 	if ($debug_print_parse ne 'off') {
 		$self->logmsg('3.16', 'WARNING', 'Setting \'debug_print_parse\' should be disabled.');
@@ -1173,7 +1173,7 @@ sub check_3_1_17
 	my $self = shift;
 
 	# Ensure 'debug_print_rewritten' is disabled
-	my $debug_print_rewritten = `$self->{psql} -Atc "SHOW debug_print_rewritten"`;
+	my $debug_print_rewritten = `$self->{psql} -AtXc "SHOW debug_print_rewritten"`;
 	chomp($debug_print_rewritten);
 	if ($debug_print_rewritten ne 'off') {
 		$self->logmsg('3.17', 'WARNING', 'Setting \'debug_print_rewritten\' should be disabled.');
@@ -1190,7 +1190,7 @@ sub check_3_1_18
 	my $self = shift;
 
 	# Ensure 'debug_print_plan' is disabled
-	my $debug_print_plan = `$self->{psql} -Atc "SHOW debug_print_plan"`;
+	my $debug_print_plan = `$self->{psql} -AtXc "SHOW debug_print_plan"`;
 	chomp($debug_print_plan);
 	if ($debug_print_plan ne 'off') {
 		$self->logmsg('3.18', 'WARNING', 'Setting \'debug_print_plan\' should be disabled.');
@@ -1207,7 +1207,7 @@ sub check_3_1_19
 	my $self = shift;
 
 	# Ensure 'debug_pretty_print' is enabled
-	my $debug_pretty_print = `$self->{psql} -Atc "SHOW debug_pretty_print"`;
+	my $debug_pretty_print = `$self->{psql} -AtXc "SHOW debug_pretty_print"`;
 	chomp($debug_pretty_print);
 	if ($debug_pretty_print eq 'off') {
 		$self->logmsg('3.19', 'WARNING', 'Setting \'debug_pretty_print\' should be enabled.');
@@ -1224,7 +1224,7 @@ sub check_3_1_20
 	my $self = shift;
 
 	# Ensure 'log_connections' is enabled
-	my $log_connections = `$self->{psql} -Atc "SHOW log_connections"`;
+	my $log_connections = `$self->{psql} -AtXc "SHOW log_connections"`;
 	chomp($log_connections);
 	if ($log_connections eq 'off') {
 		$self->logmsg('3.20', 'WARNING', 'Setting \'log_connections\' should be enabled.');
@@ -1241,7 +1241,7 @@ sub check_3_1_21
 	my $self = shift;
 
 	# Ensure 'log_disconnections' is enabled
-	my $log_disconnections = `$self->{psql} -Atc "SHOW log_disconnections"`;
+	my $log_disconnections = `$self->{psql} -AtXc "SHOW log_disconnections"`;
 	chomp($log_disconnections);
 	if ($log_disconnections eq 'off') {
 		$self->logmsg('3.21', 'WARNING', 'Setting \'log_disconnections\' should be enabled.');
@@ -1258,7 +1258,7 @@ sub check_3_1_22
 	my $self = shift;
 
 	# Ensure 'log_error_verbosity' is set correctly
-	my $log_error_verbosity = `$self->{psql} -Atc "SHOW log_error_verbosity"`;
+	my $log_error_verbosity = `$self->{psql} -AtXc "SHOW log_error_verbosity"`;
 	chomp($log_error_verbosity);
 	if ($log_error_verbosity ne 'verbose') {
 		$self->logmsg('3.22', 'WARNING', 'Setting \'log_error_verbosity\' should be set to \'verbose\'.');
@@ -1275,7 +1275,7 @@ sub check_3_1_23
 	my $self = shift;
 
 	# Ensure 'log_hostname' is set correctly
-	my $log_hostname = `$self->{psql} -Atc "SHOW log_hostname"`;
+	my $log_hostname = `$self->{psql} -AtXc "SHOW log_hostname"`;
 	chomp($log_hostname);
 	if ($log_hostname ne 'off') {
 		$self->logmsg('3.23', 'WARNING', 'Setting \'log_hostname\' should be disabled.');
@@ -1292,7 +1292,7 @@ sub check_3_1_24
 	my $self = shift;
 
 	# Ensure 'log_line_prefix' is set correctly
-	my $log_line_prefix = `$self->{psql} -Atc "SHOW log_line_prefix"`;
+	my $log_line_prefix = `$self->{psql} -AtXc "SHOW log_line_prefix"`;
 	chomp($log_line_prefix);
 	if ($self->{log_destination} ne 'syslog')
 	{
@@ -1321,7 +1321,7 @@ sub check_3_1_25
 	my $self = shift;
 
 	# Ensure 'log_statement' is set correctly
-	my $log_statement = `$self->{psql} -Atc "SHOW log_statement"`;
+	my $log_statement = `$self->{psql} -AtXc "SHOW log_statement"`;
 	chomp($log_statement);
 	if ($log_statement eq 'none') {
 		$self->logmsg('3.25', 'WARNING', 'Setting \'log_statement\' should at least be set to \'ddl\'.');
@@ -1338,7 +1338,7 @@ sub check_3_1_26
 	my $self = shift;
 
 	# Ensure 'log_timezone' is set correctly
-	my $log_timezone = `$self->{psql} -Atc "SHOW log_timezone"`;
+	my $log_timezone = `$self->{psql} -AtXc "SHOW log_timezone"`;
 	chomp($log_timezone);
 	if (!grep(/^$log_timezone$/i, 'GMT', 'UTC')) {
 		$self->logmsg('3.26', 'WARNING', 'Setting \'log_timezone\' should be set to \'GMT\' or \'UTC\'.');
@@ -1357,7 +1357,7 @@ sub check_3_1_27
 	# Ensure that log_directory is outside the PGDATA
 	if ($self->{log_destination} ne 'syslog' and $self->{log_collector} eq 'on')
 	{
-		my $log_dir = `$self->{psql} -Atc "SHOW log_directory"`;
+		my $log_dir = `$self->{psql} -AtXc "SHOW log_directory"`;
 		chomp($log_dir);
 		if ($log_dir !~ m#^/# or $log_dir =~ m#^$self->{pgdata}/#) {
 			$self->logmsg('3.4', 'WARNING', 'Setting \'log_directory\' should use a location that is not in the PGDATA.');
@@ -1379,7 +1379,7 @@ sub check_3_2
 	my $self = shift;
 
 	# Ensure the PostgreSQL Audit Extension (pgAudit) is enabled
-	my $pgaudit = `$self->{psql} -Atc "SHOW shared_preload_libraries;"`;
+	my $pgaudit = `$self->{psql} -AtXc "SHOW shared_preload_libraries;"`;
 	chomp($pgaudit);
 	if ($pgaudit !~ m#pgaudit#) {
 		$self->logmsg('3.28', 'WARNING', 'PostgreSQL extension pgAudit should be used.');
@@ -1387,7 +1387,7 @@ sub check_3_2
 	}
 	else
 	{
-		my $pgaudit_conf = `$self->{psql} -Atc "SHOW pgaudit.log;"`;
+		my $pgaudit_conf = `$self->{psql} -AtXc "SHOW pgaudit.log;"`;
 		chomp($pgaudit_conf);
 		if ($pgaudit_conf !~ /ddl/ || $pgaudit_conf !~ /write/) {
 			$self->logmsg('3.29', 'WARNING', 'PostgreSQL extension pgAudit is not well configured, \'pgaudit.log\' setting shoud contain \'ddl\' and \'write\'.');
@@ -1415,7 +1415,7 @@ sub check_4_2
 	my $self = shift;
 
 	# Ensure excessive administrative privileges are revoked
-	my @tmp = `$self->{psql} -Atc "\\du+"`;
+	my @tmp = `$self->{psql} -AtXc "\\du+"`;
 	@{$self->{superusers}} = grep(/superuser/i, @tmp);
 	if ($#{$self->{superusers}} > 0)
 	{
@@ -1440,7 +1440,7 @@ sub check_4_3
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
 		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
 
-		my @secdef = `$self->{psql} -d $db -Atc "SELECT p.oid, nspname, proname, rolname, prosecdef, proconfig, proacl FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid JOIN pg_authid a ON a.oid = p.proowner WHERE proname NOT LIKE 'pgaudit%' AND (prosecdef OR NOT proconfig IS NULL) AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d WHERE d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass AND d.objid = p.oid AND d.deptype = 'e');"`;
+		my @secdef = `$self->{psql} -d $db -AtXc "SELECT p.oid, nspname, proname, rolname, prosecdef, proconfig, proacl FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid JOIN pg_authid a ON a.oid = p.proowner WHERE proname NOT LIKE 'pgaudit%' AND (prosecdef OR NOT proconfig IS NULL) AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d WHERE d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass AND d.objid = p.oid AND d.deptype = 'e');"`;
 		if ($#secdef >= 0)
 		{
 			$self->logmsg('4.3.' . $i, 'head3', $db);
@@ -1471,7 +1471,7 @@ sub check_4_4
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
 		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
 
-		my @secdef = `$self->{psql} -d $db -Atc "SELECT t.schemaname, t.tablename, u.usename,
+		my @secdef = `$self->{psql} -d $db -AtXc "SELECT t.schemaname, t.tablename, u.usename,
 has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"', 'select') as select,
 has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"', 'insert') as insert,
 has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"', 'update') as update,
@@ -1524,7 +1524,7 @@ sub check_4_5
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
 		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
 
-		my @rls = `$self->{psql} -d $db -Atc "SELECT oid, relname, relrowsecurity FROM pg_class WHERE relrowsecurity IS TRUE;"`;
+		my @rls = `$self->{psql} -d $db -AtXc "SELECT oid, relname, relrowsecurity FROM pg_class WHERE relrowsecurity IS TRUE;"`;
 		if ($#rls >= 0)
 		{
 			$self->logmsg('4.5.' . $i, 'head3', $db);
@@ -1547,7 +1547,7 @@ sub check_4_6
 	my $self = shift;
 
 	# Ensure the set_user extension is installed
-	my $set_user = `$self->{psql} -Atc "SHOW shared_preload_libraries;"`;
+	my $set_user = `$self->{psql} -AtXc "SHOW shared_preload_libraries;"`;
 	chomp($set_user);
 	if ($set_user !~ m#set_user#) {
 		$self->logmsg('4.6', 'WARNING', 'PostgreSQL extension set_user should be used.');
@@ -1559,10 +1559,10 @@ sub check_4_6
 	}
 
 	#  Create the pgdsat_roletree audit view
-	`$self->{psql} -Atc "DROP VIEW IF EXISTS pgdsat_roletree;" 2>/dev/null`;
-	`$self->{psql} -Atc "CREATE OR REPLACE VIEW pgdsat_roletree AS WITH RECURSIVE roltree AS ( SELECT u.rolname AS rolname, u.oid AS roloid, u.rolcanlogin, u.rolsuper, '{}'::name[] AS rolparents, NULL::oid AS parent_roloid, NULL::name AS parent_rolname FROM pg_catalog.pg_authid u LEFT JOIN pg_catalog.pg_auth_members m on u.oid = m.member LEFT JOIN pg_catalog.pg_authid g on m.roleid = g.oid WHERE g.oid IS NULL UNION ALL SELECT u.rolname AS rolname, u.oid AS roloid, u.rolcanlogin, u.rolsuper, t.rolparents || g.rolname AS rolparents, g.oid AS parent_roloid, g.rolname AS parent_rolname FROM pg_catalog.pg_authid u JOIN pg_catalog.pg_auth_members m on u.oid = m.member JOIN pg_catalog.pg_authid g on m.roleid = g.oid JOIN roltree t on t.roloid = g.oid) SELECT r.rolname, r.roloid, r.rolcanlogin, r.rolsuper, r.rolparents FROM roltree r ORDER BY 1;"`;
+	`$self->{psql} -AtXc "DROP VIEW IF EXISTS pgdsat_roletree;" 2>/dev/null`;
+	`$self->{psql} -AtXc "CREATE OR REPLACE VIEW pgdsat_roletree AS WITH RECURSIVE roltree AS ( SELECT u.rolname AS rolname, u.oid AS roloid, u.rolcanlogin, u.rolsuper, '{}'::name[] AS rolparents, NULL::oid AS parent_roloid, NULL::name AS parent_rolname FROM pg_catalog.pg_authid u LEFT JOIN pg_catalog.pg_auth_members m on u.oid = m.member LEFT JOIN pg_catalog.pg_authid g on m.roleid = g.oid WHERE g.oid IS NULL UNION ALL SELECT u.rolname AS rolname, u.oid AS roloid, u.rolcanlogin, u.rolsuper, t.rolparents || g.rolname AS rolparents, g.oid AS parent_roloid, g.rolname AS parent_rolname FROM pg_catalog.pg_authid u JOIN pg_catalog.pg_auth_members m on u.oid = m.member JOIN pg_catalog.pg_authid g on m.roleid = g.oid JOIN roltree t on t.roloid = g.oid) SELECT r.rolname, r.roloid, r.rolcanlogin, r.rolsuper, r.rolparents FROM roltree r ORDER BY 1;"`;
 	# Verify there are no unexpected unprivileged roles that can login directly
-	my @canlogin = `$self->{psql} -Atc "SELECT ro.rolname, ro.roloid, ro.rolcanlogin, ro.rolsuper, ro.rolparents FROM pgdsat_roletree ro WHERE (ro.rolcanlogin AND ro.rolsuper) OR ( ro.rolcanlogin AND EXISTS ( SELECT TRUE FROM pgdsat_roletree ri WHERE ri.rolname = ANY (ro.rolparents) AND ri.rolsuper)) ORDER BY 1;"`;
+	my @canlogin = `$self->{psql} -AtXc "SELECT ro.rolname, ro.roloid, ro.rolcanlogin, ro.rolsuper, ro.rolparents FROM pgdsat_roletree ro WHERE (ro.rolcanlogin AND ro.rolsuper) OR ( ro.rolcanlogin AND EXISTS ( SELECT TRUE FROM pgdsat_roletree ri WHERE ri.rolname = ANY (ro.rolparents) AND ri.rolsuper)) ORDER BY 1;"`;
 	unshift(@canlogin, join('|', qw/rolname roloid rolcanlogin rolsuper rolparents/) . "\n");
 	$self->logdata(@canlogin);
 }
@@ -1572,12 +1572,12 @@ sub check_4_7
 	my $self = shift;
 
 	# Make use of predefined roles
-	my @pgrole = `$self->{psql} -Atc "SELECT r.rolname, r.roloid, r.rolcanlogin, r.rolsuper, r.rolparents FROM pgdsat_roletree r WHERE r.rolparents::text ~ 'pg_*' ORDER BY 1;"`;
+	my @pgrole = `$self->{psql} -AtXc "SELECT r.rolname, r.roloid, r.rolcanlogin, r.rolsuper, r.rolparents FROM pgdsat_roletree r WHERE r.rolparents::text ~ 'pg_*' ORDER BY 1;"`;
 	unshift(@pgrole, join('|', qw/rolname roloid rolcanlogin rolsuper rolparents/) . "\n");
 	$self->logdata(@pgrole);
 
 	# Drop our audit view
-	`$self->{psql} -Atc "DROP VIEW pgdsat_roletree;"`;
+	`$self->{psql} -AtXc "DROP VIEW pgdsat_roletree;"`;
 }
 
 sub check_4_8
@@ -1594,7 +1594,7 @@ sub check_4_8
 		next if ($#{ $self->{allow} } >= 0 && !grep(/^$db$/i, @{ $self->{allow} }));
 		next if ($#{ $self->{exclude} } >= 0 && grep(/^$db$/i, @{ $self->{exclude} }));
 
-		my @public = `$self->{psql} -d $db -Atc "SELECT nspname, nspowner, nspacl FROM pg_catalog.pg_namespace WHERE nspname='public';"`;
+		my @public = `$self->{psql} -d $db -AtXc "SELECT nspname, nspowner, nspacl FROM pg_catalog.pg_namespace WHERE nspname='public';"`;
 		if ($public[0] =~ m#,=U[C]?/#s)
 		{
 			$self->logmsg('4.8.' . $i, 'head3', $db);
@@ -1628,7 +1628,7 @@ sub check_5_1
 	my $self = shift;
 
 	# Ensure login via "local" UNIX Domain Socket is configured correctly
-	my $hba_file = `$self->{psql} -Atc "SHOW hba_file;"`;
+	my $hba_file = `$self->{psql} -AtXc "SHOW hba_file;"`;
 	chomp($hba_file);
 	if (!$hba_file || !-e $hba_file) {
 		$self->logmsg('5.1', 'CRITICAL', 'Can not find pg_hba.conf file "%s".', $hba_file);
@@ -1673,7 +1673,7 @@ sub check_5_3
 	# Only useful if the authentication method is md5 or scram
 	if ($self->{use_pwd_enforcement})
 	{
-		my @auth_lib = `$self->{psql} -Atc "select setting from pg_settings where name like '%_preload_libraries' and setting != ''"`;
+		my @auth_lib = `$self->{psql} -AtXc "select setting from pg_settings where name like '%_preload_libraries' and setting != ''"`;
 		chomp(@auth_lib);
 
 		if (!grep(/(credcheck|passwordcheck)/, @auth_lib)) {
@@ -1695,7 +1695,7 @@ sub check_5_4
 	# Ensure authentication timeout and delay are well configured
 
 	# Check timeout in the authentication process.
-	my $auth_timeout = `$self->{psql} -Atc "select setting from pg_settings where name='authentication_timeout'"`;
+	my $auth_timeout = `$self->{psql} -AtXc "select setting from pg_settings where name='authentication_timeout'"`;
 	chomp($auth_timeout);
 	if ($auth_timeout > 60) {
 		$self->logmsg('5.9', 'WARNING', "setting 'authentication_timeout' should be <= 60s.");
@@ -1703,7 +1703,7 @@ sub check_5_4
 	}
 	# Search if an auth delay is set, auth_delay causes the server
 	# to pause briefly before reporting authentication failure
-	my @auth_delay = `$self->{psql} -Atc "SHOW auth_delay.milliseconds; SHOW credcheck.auth_delay_ms;" 2>/dev/null`;
+	my @auth_delay = `$self->{psql} -AtXc "SHOW auth_delay.milliseconds; SHOW credcheck.auth_delay_ms;" 2>/dev/null`;
 	chomp(@auth_delay);
 	if (!grep(/\d+/, @auth_delay)) {
 		$self->logmsg('5.10', 'WARNING', 'you should add an authentication failure delay to prevent brute force attack. See PostgreSQL extension credcheck or auth_delay.');
@@ -1795,7 +1795,7 @@ sub check_5_9
 	my $self = shift;
 
 	# Ensure that \'password_encryption\' is correctly set
-	my $pwd_enc_type = `$self->{psql} -Atc "SHOW password_encryption;"`;
+	my $pwd_enc_type = `$self->{psql} -AtXc "SHOW password_encryption;"`;
 	chomp($pwd_enc_type);
 	if ($pwd_enc_type ne 'scram-sha-256') {
 		$self->logmsg('5.17', 'CRITICAL', 'parameter \'password_encryption\' should be set to \'scram-sha-256\', not \'%s\'.', $pwd_enc_type);
@@ -1960,7 +1960,7 @@ sub check_6_2
 	my $self = shift;
 
 	# Ensure 'backend' runtime parameters are configured correctly
-	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context IN ('backend','superuser-backend') ORDER BY 1;"`;
+	my @ret = `$self->{psql} -AtXc "SELECT name, setting FROM pg_settings WHERE context IN ('backend','superuser-backend') ORDER BY 1;"`;
 	chomp(@ret);
 	my %backend_settings =();
 	foreach my $s (@ret)
@@ -2001,7 +2001,7 @@ sub check_6_3
 	my $self = shift;
 
 	# Ensure 'Postmaster' runtime parameters are configured correctly
-	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'postmaster' ORDER BY 1;"`;
+	my @ret = `$self->{psql} -AtXc "SELECT name, setting FROM pg_settings WHERE context = 'postmaster' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
 }
@@ -2011,7 +2011,7 @@ sub check_6_4
 	my $self = shift;
 
 	# Ensure 'SIGHUP' runtime parameters are configured correctly
-	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'sighup' ORDER BY 1;"`;
+	my @ret = `$self->{psql} -AtXc "SELECT name, setting FROM pg_settings WHERE context = 'sighup' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
 }
@@ -2021,7 +2021,7 @@ sub check_6_5
 	my $self = shift;
 
 	# Ensure 'Superser' runtime parameters are configured correctly
-	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'superuser' ORDER BY 1;"`;
+	my @ret = `$self->{psql} -AtXc "SELECT name, setting FROM pg_settings WHERE context = 'superuser' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
 }
@@ -2031,7 +2031,7 @@ sub check_6_6
 	my $self = shift;
 
 	# Ensure 'User' runtime parameters are configured correctly
-	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE context = 'user' ORDER BY 1;"`;
+	my @ret = `$self->{psql} -AtXc "SELECT name, setting FROM pg_settings WHERE context = 'user' ORDER BY 1;"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
 }
@@ -2062,7 +2062,7 @@ sub check_6_8
 	my $self = shift;
 
 	# Ensure TLS is enabled and configured correctly
-	my $ssl = `$self->{psql} -Atc "SHOW ssl;"`;
+	my $ssl = `$self->{psql} -AtXc "SHOW ssl;"`;
 	chomp($ssl);
 	if ($ssl ne 'on') {
 		$self->logmsg('6.7', 'CRITICAL', 'TLS is not enabled. Setting \'ssl\' should be activated.');
@@ -2070,14 +2070,14 @@ sub check_6_8
 	}
 	else
 	{
-		my $ssl_ver = `$self->{psql} -Atc "select setting from pg_settings where name='ssl_min_protocol_version'"`;
+		my $ssl_ver = `$self->{psql} -AtXc "select setting from pg_settings where name='ssl_min_protocol_version'"`;
 		chomp($ssl_ver);
 		$ssl_ver =~ s/[^0-9\.]+//g;
 		if ($ssl_ver < 1.3) {
 			$self->logmsg('6.8', 'WARNING', 'Setting \'ssl_min_protocol_version\' should be TLS v1.3 or newer.');
 			$self->{results}{'6.8'} = 'FAILURE';
 		}
-		my $ssl_passphrase = `$self->{psql} -Atc "select setting from pg_settings where name='ssl_passphrase_command'"`;
+		my $ssl_passphrase = `$self->{psql} -AtXc "select setting from pg_settings where name='ssl_passphrase_command'"`;
 		chomp($ssl_passphrase);
 		if (!$ssl_passphrase) {
 			$self->logmsg('6.9', 'WARNING', 'The SSL certificate should have a passphrase and setting \'ssl_passphrase_command\' should be set.');
@@ -2101,7 +2101,7 @@ sub check_6_9
 	my $self = shift;
 
 	# Ensure a cryptographic extension is installed
-	my @has_crypto = `$self->{psql} -Atc "select * from pg_available_extensions where name='pgcrypto' or name='pgsodium'"`;
+	my @has_crypto = `$self->{psql} -AtXc "select * from pg_available_extensions where name='pgcrypto' or name='pgsodium'"`;
 	chomp(@has_crypto);
 	if ($#has_crypto < 0) {
 		$self->logmsg('6.11', 'WARNING', 'Extensions pgcrypto or pgsodium are not installed.');
@@ -2118,7 +2118,7 @@ sub check_6_10
 	my $self = shift;
 
 	$self->logmsg('6.10', 'head2', 'Ensure a data anonymization extension is installed');
-	my $has_anon = `$self->{psql} -Atc "SHOW session_preload_libraries;"`;
+	my $has_anon = `$self->{psql} -AtXc "SHOW session_preload_libraries;"`;
 	chomp($has_anon);
 	my @libs = split(/,/, $has_anon);
 	if (!grep(/^(anon|pg_anonymize)$/, @libs)) {
@@ -2141,7 +2141,7 @@ sub check_7_1
 	my $self = shift;
 
 	# Ensure a replication-only user is created and used for streaming replication
-	my @repusers = `$self->{psql} -Atc "select rolname from pg_roles where rolreplication is true;"`;
+	my @repusers = `$self->{psql} -AtXc "select rolname from pg_roles where rolreplication is true;"`;
 	chomp(@repusers);
 	# Check if there's any replication user outside the postgres superuser
 	if ($#repusers < 1) {
@@ -2159,7 +2159,7 @@ sub check_7_2
 	my $self = shift;
 
 	# Ensure logging of replication commands is configured
-	my $log_rep = `$self->{psql} -Atc "SHOW log_replication_commands;"`;
+	my $log_rep = `$self->{psql} -AtXc "SHOW log_replication_commands;"`;
 	chomp($log_rep);
 	if ($log_rep eq 'off') {
 		$self->logmsg('7.2', 'WARNING', 'Setting \'log_replication_commands\' should be enabled.');
@@ -2181,7 +2181,7 @@ sub check_7_4
 	my $self = shift;
 
 	# Ensure WAL archiving is configured and functional
-	my @ret = `$self->{psql} -Atc "SELECT name, setting FROM pg_settings WHERE name ~ '^archive' ORDER BY 1;"`;
+	my @ret = `$self->{psql} -AtXc "SELECT name, setting FROM pg_settings WHERE name ~ '^archive' ORDER BY 1;"`;
 	chomp(@ret);
 	my %archive_settings = ();
 	foreach my $s (@ret)
@@ -2212,7 +2212,7 @@ sub check_7_5
 	my $self = shift;
 
 	# Ensure streaming replication parameters are configured correctly
-	my $ret = `$self->{psql} -Atc "SHOW primary_conninfo;"`;
+	my $ret = `$self->{psql} -AtXc "SHOW primary_conninfo;"`;
 	chomp($ret);
 	if ($ret !~ /sslmode=require/) {
 		$self->logmsg('7.6', 'CRITICAL', 'Setting \'primary_conninfo\' must enforce TLS encryption of the replication (sslmode=required).');
@@ -2266,7 +2266,7 @@ sub check_8_3
 	my $self = shift;
 
 	# Ensure miscellaneous configuration settings are correct
-	my @ret = `$self->{psql} -Atc "select name, setting from pg_settings where name in ('external_pid_file', 'unix_socket_directories','shared_preload_libraries','dynamic_library_path','local_preload_libraries','session_preload_libraries');"`;
+	my @ret = `$self->{psql} -AtXc "select name, setting from pg_settings where name in ('external_pid_file', 'unix_socket_directories','shared_preload_libraries','dynamic_library_path','local_preload_libraries','session_preload_libraries');"`;
 	unshift(@ret, "name|setting\n");
 	$self->logdata(@ret);
 }
