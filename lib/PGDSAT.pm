@@ -2214,8 +2214,8 @@ sub check_7_5
 	# Ensure streaming replication parameters are configured correctly
 	my $ret = `$self->{psql} -AtXc "SHOW primary_conninfo;"`;
 	chomp($ret);
-	if ($ret !~ /sslmode=require/) {
-		$self->logmsg('7.6', 'CRITICAL', 'Setting \'primary_conninfo\' must enforce TLS encryption of the replication (sslmode=required).');
+	if ($ret !~ /sslmode=(require|verify-ca)/) {
+		$self->logmsg('7.6', 'CRITICAL', 'Setting \'primary_conninfo\' must enforce TLS encryption of the replication (sslmode=require or sslmode=verify-ca).');
 		$self->{results}{'7.5'} = 'FAILURE';
 	}
 	else
