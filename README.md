@@ -217,7 +217,7 @@ To execute the pgdsat command locally without installation, use:
 
 pgdsat is free software distributed under the GPLv3 license. See LICENCE file for more information.
 
-Copyright (c) 2024 HexaCluster Corp
+Copyright (c) 2024-2026 HexaCluster Corp
 
 Some parts are copied from the [CIS Benchmark](https://www.cisecurity.org/cis-benchmarks)
 licensed under the [Creative Common Version 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode)

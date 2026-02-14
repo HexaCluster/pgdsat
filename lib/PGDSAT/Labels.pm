@@ -4,13 +4,13 @@ package PGDSAT::Labels;
 # Name     : PGDSAT/Labels.pm
 # Language : Perl
 # Authors  : Gilles Darold
-# Copyright: Copyright (c) 2024 HexaCluster Corp
+# Copyright: Copyright (c) 2024-2026 HexaCluster Corp
 # Function : Language module to import the securiy check description
 #------------------------------------------------------------------------------
 use vars qw($VERSION %AUDIT_LBL);
 use strict;
 
-$VERSION = '1.1';
+$VERSION = '1.2';
 
 %AUDIT_LBL = (
 	'en_US' => {

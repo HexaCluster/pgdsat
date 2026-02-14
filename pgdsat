@@ -3,7 +3,7 @@
 # Project  : Postgresql Database Security Assessment Tool
 # Name     : pgdsat
 # Author   : Gilles Darold
-# Copyright: Copyright (c) 2024 HexaCluster Corp
+# Copyright: Copyright (c) 2024-2026 HexaCluster Corp
 # Function : Tool used to perform a reliable and repeatable security assessment
 #            on PostgreSQL clusters
 #-------------------------------------------------------------------------------
@@ -36,7 +36,7 @@ use PGDSAT;
 use POSIX qw(locale_h);
 use Getopt::Long qw(:config no_ignore_case bundling);
 
-$VERSION = '1.1';
+$VERSION = '1.2';
 
 setlocale(LC_NUMERIC, 'C');
 setlocale(LC_ALL,     'C');

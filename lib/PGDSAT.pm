@@ -5,13 +5,13 @@ package PGDSAT;
 # Name     : PGDSAT.pm
 # Language : Perl
 # Authors  : Gilles Darold
-# Copyright: Copyright (c) 2024 HexaCluster Corp
+# Copyright: Copyright (c) 2024-2026 HexaCluster Corp
 # Function : Module containing the security checks methods
 #------------------------------------------------------------------------------
 use vars qw($VERSION);
 use strict qw/vars/;
 
-$VERSION = '1.1';
+$VERSION = '1.2';
 
 use PGDSAT::Labels;
 use PGDSAT::Messages;

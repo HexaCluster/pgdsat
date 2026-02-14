@@ -1,3 +1,35 @@
+2026-02-14 - Version 1.2
+
+This release fixes several issues reported by users since last release and add
+a new feature:
+
+  * Add option -r | --remove to specify checks to remove from the report,
+    it can be used multiple time. The value must be the number of a check
+    or a regexp.
+  * Add requirement information for package perl-bignum and perl-Math-BigRat
+    on some RPM based distribution. Thanks to Osman Dinc for the report.
+
+Here is the list of changes:
+
+  - Fix sslmode parameter wrong check for values require and verify-ca. Thanks
+    to alperensen52 for the report.
+  - Do not emit pg_hba.conf warning about all database or users when the method
+    is 'reject'. Thanks to Ales Zeleny for the report.
+  - Correctly lookup the provide value from no-pg-version-check. Thanks to
+    Matthias Baur for the patch.
+  - Do not read the start-up file on psql invocations. Thanks to Ales Zeleny
+    for the patch.
+  - Fix spaces while parsing unix_socket_directories. Thanks to Ales Zeleny
+    for the patch.
+  - Fix double report of 2.4 check result. Thanks to Steven Tong.
+  - Move check of permission to read the PGDATA to check 1.3.1.
+  - Replace use of pg_controldata to check checksum by the read of data_checksum
+    setting.
+  - Avoid double start of line in check remove regexp, pgdsat always append the
+    start of line character ^ to the regexp.
+  - Fix pg_hba.conf parsing when host is fqdn. Thanks to Dennis for the report.
+  - Fix die when the ip range from pg_hba.conf can not be defined.
+
 2024-04-19 - Version 1.1
 
 This release fixes several issues reported by users since last release and adds

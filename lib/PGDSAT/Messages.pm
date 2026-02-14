@@ -4,13 +4,13 @@ package PGDSAT::Messages;
 # Name     : PGDSAT/Messages.pm
 # Language : Perl
 # Authors  : Gilles Darold
-# Copyright: Copyright (c) 2024 HexaCluster Corp
+# Copyright: Copyright (c) 2024-2026 HexaCluster Corp
 # Function : Language module to import the securiy check description
 #------------------------------------------------------------------------------
 use vars qw($VERSION %AUDIT_MSG);
 use strict;
 
-$VERSION = '1.1';
+$VERSION = '1.2';
 
 # The numbering here try to follow the numbering in the PGDSAT::Labels file
 # but it is not requires. We just keep the numbering from PGDSAT::Labels

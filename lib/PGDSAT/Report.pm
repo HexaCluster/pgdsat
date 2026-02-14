@@ -5,13 +5,13 @@ package PGDSAT::Report;
 # Name     : PGDSAT/Report.pm
 # Language : Perl
 # Authors  : Gilles Darold
-# Copyright: Copyright (c) 2024 HexaCluster Corp
+# Copyright: Copyright (c) 2024-2026 HexaCluster Corp
 # Function : Module containing methods to build the report
 #------------------------------------------------------------------------------
 use vars qw($VERSION);
 use strict;
 
-$VERSION = '1.1';
+$VERSION = '1.2';
 
 ####
 # Build the report
