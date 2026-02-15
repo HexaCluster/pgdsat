@@ -8,6 +8,7 @@ a new feature:
     or a regexp.
   * Add requirement information for package perl-bignum and perl-Math-BigRat
     on some RPM based distribution. Thanks to Osman Dinc for the report.
+  * Add support to Chines (zh_CN) language. Thanks to Steven Tong for the patch.
 
 Here is the list of changes:
 
