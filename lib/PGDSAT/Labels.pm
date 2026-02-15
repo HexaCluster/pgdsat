@@ -23,53 +23,62 @@ $VERSION = '1.2';
 			'description' => 'Identify and inspect configured repositories to ensure they are all valid and authorized sources of packages.',
 		},
 		'1.1.1' => {
-			'title' => 'PostgreSQL packages installed.',
-			'description' => 'Inspect installed package to ensure they are all valid and authorized packages.',
-			'manual' => 1,
-		},
-		'1.1.2' => {
 			'title' => 'Ensure packages are obtained from PGDG',
 			'description' => 'PostgreSQL packages not supported by the PostgreSQL community are generaly not recommended.',
 		},
 		'1.2' => {
+			'title' => 'Install only required packages.',
+			'description' => 'Depending on the distribution, several other packages next to the mandatory
+postgresql might have been installed upon a system. Unused packages can increase the potential attack surface of the system.',
+			'manual' => 1,
+		},
+		'1.3' => {
 			'title' => 'Ensure systemd Service Files Are Enabled',
 			'description' => 'Check that the PostgreSQL systemd service is enabled. Enabling the systemd PostgreSQL service ensures that the database service is active when at system startup and reboot. This check is not done if Patroni is installed, in this case the start of PostgreSQL is handled by Patroni. (HexaCLuster)',
 		},
-		'1.3' => {
+		'1.4' => {
 			'title' => 'Ensure Data Cluster Initialized Successfully',
 			'description' => 'PostgreSQL enforces ownership and permissions of the data cluster such that the data cluster cannot be accessed by other UNIX user accounts and the data cluster cannot owned by root.',
 		},
-		'1.3.1' => {
+		'1.4.1' => {
 			'title' => 'Check initialization of the PGDATA',
 			'description' => 'The command initdb might have been run before starting PostgreSQL, verify that this is the case.',
 		},
-		'1.3.2' => {
+		'1.4.2' => {
 			'title' => 'Check version in PGDATA',
 			'description' => 'PostgreSQL maintain a file called PG_VERSION in the base directory, verify that .',
 		},
-		'1.3.3' => {
+		'1.4.3' => {
 			'title' => 'Ensure Data Cluster have checksum enabled',
 			'description' => 'When checksum are not enabled, silent data corruption can not be detected by PostgreSQL. Verify that they are enabled. (*)',
 		},
-		'1.3.4' => {
+		'1.4.4' => {
 			'title' => 'Ensure WALs and temporary files are not on the same partition as the PGDATA',
 			'description' => 'The PostgreSQL cluster is organized to carry out specific tasks in subdirectories. For the purposes of performance, reliability, and security some of these subdirectories should be relocated outside the data cluster. (*)',
 		},
-		'1.3.5' => {
+		'1.4.5' => {
 			'title' => 'Ensure that the PGDATA partition is encrypted',
 			'description' => 'PostgreSQL storage encryption can be performed at the file system level or the block level, for example using LUKS. This mechanism prevents unencrypted data from being read from the drives if the drives or the entire computer is stolen. This does not protect against attacks while the file system is mounted, because when mounted, the operating system provides an unencrypted view of the data. (*)',
 			'manual' => 1,
 		},
-		'1.4' => {
+		'1.5' => {
 		       'title' => 'Ensure PostgreSQL versions are up-to-date',
 		       'descritption' => 'PostgreSQL minor upgrades contain only bugs and security fixes. There are no new features, new bugs and no compatibility problems with a minor upgrade, they are always fully binary compatible. You should always install minor releases as soon as they are published. For minor releases, the community considers not upgrading to be riskier than upgrading.',
 	        },
-		'1.5' => {
+		'1.6' => {
+		       'title' => 'Verify That PGPASSWORD is Not Set in Users\' Profiles',
+		       'descritption' => 'Use of the PGPASSWORD environment variable implies PostgreSQL credentials are stored as clear text. Avoiding this may increase assurance that the confidentiality of PostgreSQL credentials is preserved.',
+	        },
+		'1.7' => {
+		       'title' => 'Verify That the \'PGPASSWORD\' Environment Variable is Not in Use',
+		       'descritption' => 'Using the PGPASSWORD environment variable implies PostgreSQL credentials are stored as clear text. Avoiding use of this environment variable can better safeguard the confidentiality of PostgreSQL credentials.',
+	        },
+		'1.8' => {
 		       'title' => 'Ensure unused PostgreSQL extensions are removed',
 		       'descritption' => 'PostgreSQL extensions are created in database, some may not be used anymore. This is a risk to keep unused extension installed in a database.',
 			'manual' => 1,
 	        },
-		'1.6' => {
+		'1.9' => {
 		       'title' => 'Ensure tablespace location is not inside the PGDATA',
 		       'descritption' => 'Creating a tablespace in the data directory is useless and not recommended for performances reason and disk space use (*).',
 	        },
@@ -408,54 +417,60 @@ PostgreSQL processes will be lost.',
 			'title' => 'Vérifier que les packages sont obtenus à partir de dépots autorisés',
 			'description' => 'Identifiez et inspectez les dépots configurés pour vous assurer qu\'ils constituent tous des sources de packages valides et autorisées.',
 		},
-		'1.1.1' => {
-			'title' => 'Paquets PostgreSQL installés.',
-			'description' => 'Inspectez les packages installés pour vous assurer qu\'ils sont tous des packages valides et autorisés.',
-			'manuel' => 1,
-		},
 		'1.1.2' => {
 			'title' => 'Vérifier que les packages sont obtenus auprès de PGDG',
 			'description' => 'Les packages PostgreSQL non pris en charge par la communauté PostgreSQL ne sont généralement pas recommandés.',
 		},
 		'1.2' => {
+			'title' => 'Installation des paquets utilisés uniquement.',
+			'description' => 'Depending on the distribution, several other packages next to the mandatory
+postgresql might have been installed upon a system. Unused packages can increase the potential attack surface of the system.',
+			'manuel' => 1,
+		},
+		'1.3' => {
 			'title' => 'Vérifier que les fichiers du service systemd sont activés',
 			'description' => 'Vérifiez que le service systemd PostgreSQL est activé. L\'activation du service systemd PostgreSQL garantit que le service de base de données est actif au démarrage et au redémarrage du système. Cette vérification n\'est pas effectuée si Patroni est installé, dans ce cas le démarrage de PostgreSQL est géré par Patroni. (HexaCLustre)',
 		},
-		'1.3' => {
+		'1.4' => {
 			'title' => 'Vérifier l\'initialisation réussie du cluster de données',
 			'description' => 'PostgreSQL applique la propriété et les autorisations du cluster de données de telle sorte que le cluster de données ne soit pas accessible par d\'autres comptes utilisateurs UNIX et que le cluster de données ne puisse pas appartenir à root.',
 		},
-		'1.3.1' => {
+		'1.4.1' => {
 			'title' => 'Vérifier l\'initialisation du PGDATA',
 			'description' => 'La commande initdb a peut-être été exécutée avant de démarrer PostgreSQL, vérifiez que c\'est le cas.',
 		},
-		'1.3.2' => {
+		'1.4.2' => {
 			'title' => 'Vérifier la version dans PGDATA',
 			'description' => 'PostgreSQL maintient un fichier appelé PG_VERSION dans le répertoire de base, vérifiez que .',
 		},
-		'1.3.3' => {
+		'1.4.3' => {
 			'title' => 'Verifier que les checksum du cluster de données est activée',
 			'description' => 'Lorsque les checksum ne sont pas activées, la corruption silencieuse des données ne peut pas être détectée par PostgreSQL. Vérifiez qu\'ils sont activés. (*)',
 		},
-		'1.3.4' => {
+		'1.4.4' => {
 			'title' => 'Vérifier que les WAL et les fichiers temporaires ne se trouvent pas sur la même partition que PGDATA',
 			'description' => 'Le cluster PostgreSQL est organisé pour effectuer des tâches spécifiques dans des sous-répertoires. Pour des raisons de performances, de fiabilité et de sécurité, certains de ces sous-répertoires doivent être déplacés en dehors du cluster de données. (*)',
 		},
-		'1.3.5' => {
+		'1.4.5' => {
 			'title' => 'Vérifier que la partition PGDATA est chiffrée',
 			'description' => 'Le chiffrement du stockage PostgreSQL peut être effectué au niveau du système de fichiers ou au niveau du bloc, par exemple en utilisant LUKS. Ce mécanisme empêche la lecture de données non cryptées sur les disques en cas de vol des disques ou de l\'intégralité de l\'ordinateur. Cela ne protège pas contre les attaques pendant le montage du système de fichiers, car une fois monté, le système d\'exploitation fournit une vue non chiffrée des données. (*)',
 			'manuel' => 1,
 		},
-		'1.4' => {
+		'1.5' => {
 		       'title' => 'Vérifier que les versions de PostgreSQL sont à jour',
 		       'descritption' => 'Les mises à jour mineures de PostgreSQL contiennent uniquement des correctifs de bugs et de sécurité. Il n\'y a pas de nouvelles fonctionnalités, de nouveaux bugs et aucun problème de compatibilité avec une mise à jour mineure, ils sont toujours entièrement binaires compatibles. Vous devez toujours installer les versions mineures dès qu\'elles sont publiées. Pour les versions mineures, la communauté considère que ne pas mettre à niveau est plus risqué que la mise à niveau.',
 	        },
-		'1.5' => {
+		'1.6' => {
+		       'title' => 'Vérifier que PGPASSWORD n\est pas défini dans les profils utilisateurs',
+		       'description' => 'Use of the PGPASSWORD environment variable implies PostgreSQL credentials are stored as clear text. Avoiding this may increase assurance that the confidentiality of PostgreSQL credentials is preserved.',
+			'manuel' => 1,
+	        },
+		'1.7' => {
 		       'title' => 'Vérifier que les extensions PostgreSQL inutilisées sont supprimées',
 		       'descritption' => 'Les extensions PostgreSQL sont créées dans la base de données, certaines ne peuvent plus être utilisées. Il est risqué de conserver les extensions inutilisées installées dans une base de données.',
 			'manuel' => 1,
 	        },
-		'1.6' => {
+		'1.8' => {
 		       'title' => 'Vérifier que la destination des tablespaces n\'est pas dans le PGDATA',
 		       'descritption' => 'Créer un tablespace dans le répertoire des données est inutile est absoluement pas recommendé pour des raisons de performances et d\'utilisation d\'espace disque (*).',
 	        },
@@ -792,53 +807,57 @@ PostgreSQL processes will be lost.',
 			'description' => '识别并检查配置的存储库，以确保它们都是有效且经过授权的软件包来源。',
 		},
 		'1.1.1' => {
-			'title' => '已安装 PostgreSQL 软件包。',
-			'description' => '检查已安装的软件包，以确保它们都是有效且经过授权的软件包。',
-			'manual' => 1,
-		},
-		'1.1.2' => {
 			'title' => '确保软件包来自 PGDG',
 			'description' => '通常不推荐使用 PostgreSQL 社区不支持的 PostgreSQL 软件包。',
 		},
 		'1.2' => {
+			'title' => '仅安装必需的软件包。',
+			'description' => '根据发行版的不同，除了必需的 `postgresql` 软件包之外，系统中可能还安装了其他一些软件包。未使用的软件包会增加系统的潜在攻击面。',
+			'manual' => 1,
+		},
+		'1.3' => {
 			'title' => '确保 systemd 服务文件已启用',
 			'description' => '检查 PostgreSQL systemd 服务是否已启用。启用 systemd PostgreSQL 服务可确保数据库服务在系统启动和重启时处于活动状态。如果安装了 Patroni，则不会进行此检查，在这种情况下，PostgreSQL 的启动由 Patroni 处理。 (HexaCLuster)',
 		},
-		'1.3' => {
+		'1.4' => {
 			'title' => '确保数据集群初始化成功',
 			'description' => 'PostgreSQL 强制执行数据集群的所有权和权限，使得其他 UNIX 用户帐户无法访问数据集群，并且数据集群不能由 root 拥有。',
 		},
-		'1.3.1' => {
+		'1.4.1' => {
 			'title' => '检查 PGDATA 的初始化',
 			'description' => '在启动 PostgreSQL 之前可能已经运行了命令 initdb，请验证是否是这种情况。',
 		},
-		'1.3.2' => {
+		'1.4.2' => {
 			'title' => '检查 PGDATA 中的版本',
 			'description' => 'PostgreSQL 在基目录中维护一个名为 PG_VERSION 的文件，请验证。',
 		},
-		'1.3.3' => {
+		'1.4.3' => {
 			'title' => '确保数据集群已启用校验和',
 			'description' => '当未启用校验和时，PostgreSQL 无法检测到静默数据损坏。请验证它们是否已启用。(*)',
 		},
-		'1.3.4' => {
+		'1.4.4' => {
 			'title' => '确保 WAL 和临时文件与 PGDATA 不在同一分区',
 			'description' => 'PostgreSQL 集群被组织为在子目录中执行特定任务。出于性能、可靠性和安全性的目的，其中一些子目录应重新定位到数据集群之外。(*)',
 		},
-		'1.3.5' => {
+		'1.4.5' => {
 			'title' => '确保 PGDATA 分区已加密',
 			'description' => 'PostgreSQL 存储加密可以在文件系统级别或块级别执行，例如使用 LUKS。如果驱动器或整个计算机被盗，此机制可防止从驱动器读取未加密的数据。这无法在文件系统挂载时防止攻击，因为挂载时，操作系统会提供未加密的数据视图。 (*)',
 			'manual' => 1,
 		},
-		'1.4' => {
+		'1.5' => {
 			'title' => '确保 PostgreSQL 版本是最新的',
 			'descritption' => 'PostgreSQL 小升级仅包含错误和安全修复。小升级没有新功能、新错误，也没有兼容性问题，它们始终完全二进制兼容。您应该始终在小版本发布后立即安装它们。对于小版本，社区认为不升级比升级风险更大。',
 		},
-		'1.5' => {
+		'1.6' => {
+			'title' => '请确认用户配置文件中未设置 PGPASSWORD。',
+			'descritption' => '使用 PGPASSWORD 环境变量意味着 PostgreSQL 凭据以明文形式存储。避免这样做可以提高 PostgreSQL 凭据机密性的安全性。',
+		},
+		'1.7' => {
 			'title' => '确保删除未使用的 PostgreSQL 扩展',
 			'descritption' => 'PostgreSQL 扩展是在数据库中创建的，有些可能不再使用。在数据库中继续安装未使用的扩展是有风险的。',
 			'manual' => 1,
 		},
-		'1.6' => {
+		'1.8' => {
 			'title' => '确保表空间位置不在 PGDATA 内',
 			'descritption' => '在数据目录中创建表空间是无用的，出于性能原因和磁盘空间使用 (*) 不建议这样做。',
 		},

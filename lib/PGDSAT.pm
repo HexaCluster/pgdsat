@@ -433,22 +433,6 @@ sub check_1_1_1
 {
 	my $self = shift;
 
-	my @packages = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server"`;
-	if ($#packages < 0) {
-		@packages = `dpkg -l 2>/dev/null | grep -E "postgresql-[1-9]{1,2}" | sed 's/^ii //'`;
-	}
-
-	if ($#packages < 0) {
-		$self->logmsg('1.1', 'CRITICAL', 'No PostgreSQL packages found.');
-		$self->{results}{'1.1.1'} = 'FAILURE';
-	}
-	$self->logdata(@packages);
-}
-
-sub check_1_1_2
-{
-	my $self = shift;
-
 	@{ $self->{pkg_ver} } = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server" | grep -i PGDG | awk -F "-" '{print \$3}' | sort -u`;
 	if ($#{ $self->{pkg_ver} } < 0) {
 		@{ $self->{pkg_ver} } = `dpkg -l 2>/dev/null | grep -E "postgresql-[1-9]{1,2} .*pgdg" | awk '{print \$3}' | sed 's/-.*//' | sort -u`;
@@ -456,7 +440,7 @@ sub check_1_1_2
 	chomp(@{ $self->{pkg_ver} });
 	if ($#{ $self->{pkg_ver} } < 0) {
 		$self->logmsg('1.2', 'WARNING', 'PostgreSQL packages are not from the PGDG repository.');
-		$self->{results}{'1.1.2'} = 'FAILURE';
+		$self->{results}{'1.1.1'} = 'FAILURE';
 	}
 	else
 	{
@@ -466,6 +450,23 @@ sub check_1_1_2
 }
 
 sub check_1_2
+{
+	my $self = shift;
+
+	my @packages = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server"`;
+	if ($#packages < 0) {
+		@packages = `dpkg -l 2>/dev/null | grep -E "postgresql-[1-9]{1,2}" | sed 's/^ii //'`;
+	}
+
+	if ($#packages < 0) {
+		$self->logmsg('1.1', 'CRITICAL', 'No PostgreSQL packages found.');
+		$self->{results}{'1.2'} = 'FAILURE';
+	}
+	$self->logdata(@packages);
+}
+
+
+sub check_1_3
 {
 	my $self = shift;
 
@@ -490,13 +491,13 @@ sub check_1_2
 			if (!$patroni)
 			{
 				$self->logmsg('1.7', 'WARNING', 'PostgreSQL version %s, is not enabled as a systemd service.', $major);
-				$self->{results}{'1.2'} = 'FAILURE';
+				$self->{results}{'1.3'} = 'FAILURE';
 			}
 		}
 		elsif (!$patroni)
 		{
 			$self->logmsg('1.17', 'INFO', 'PostgreSQL version %s, is enabled as a systemd service.', $major, $major);
-			$self->{results}{'1.2'} = 'SUCCESS';
+			$self->{results}{'1.3'} = 'SUCCESS';
 		}
 		$ret = `systemctl status postgresql-$major.service 2>/dev/null | grep "active (running)"`;
 		if (!$ret) {
@@ -509,10 +510,10 @@ sub check_1_2
 
 	if ($patroni && $running) {
 		$self->logmsg('1.8', 'WARNING', "PostgreSQL systemd service must not be enabled when patroni is used.");
-		$self->{results}{'1.2'} = 'FAILURE';
+		$self->{results}{'1.3'} = 'FAILURE';
 	}
 
-	if ($running && $self->{results}{'1.2'} ne 'FAILURE')
+	if ($running && $self->{results}{'1.3'} ne 'FAILURE')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
@@ -520,12 +521,12 @@ sub check_1_2
 	return $self->{cluster} || $running;
 }
 
-sub check_1_3
+sub check_1_4
 {
 	# nothing to do
 }
 
-sub check_1_3_1
+sub check_1_4_1
 {
 	my $self = shift;
 
@@ -543,7 +544,7 @@ sub check_1_3_1
 	chomp($base_ver);
 	if (!$base_ver) {
 		$self->logmsg('1.9', 'CRITICAL', 'Wrong or no base directory found, the PGDATA (%s) must be initialized first (see initdb).', $self->{pgdata});
-		$self->{results}{'1.3.1'} = 'FAILURE';
+		$self->{results}{'1.4.1'} = 'FAILURE';
 	}
 	else
 	{
@@ -551,7 +552,7 @@ sub check_1_3_1
 	}
 }
 
-sub check_1_3_2
+sub check_1_4_2
 {
 	my $self = shift;
 
@@ -562,7 +563,7 @@ sub check_1_3_2
 	chomp($ver);
 	if ($ver ne $major) {
 		$self->logmsg('1.10', 'CRITICAL', 'The version of the PGDATA (%s) does not correspond to the PostgreSQL cluster version; You need to upgrade the PGDATA v%s to v%s first.', $self->{pgdata}, $ver, $major);
-		$self->{results}{'1.3.2'} = 'FAILURE';
+		$self->{results}{'1.4.2'} = 'FAILURE';
 	}
 	else
 	{
@@ -570,7 +571,7 @@ sub check_1_3_2
 	}
 }
 
-sub check_1_3_3
+sub check_1_4_3
 {
 	my $self = shift;
 
@@ -593,11 +594,11 @@ sub check_1_3_3
 	else
 	{
 		$self->logmsg('1.11', 'CRITICAL', 'Checksum are not enabled in PGDATA %s.', $self->{pgdata});
-		$self->{results}{'1.3.3'} = 'FAILURE';
+		$self->{results}{'1.4.3'} = 'FAILURE';
 	}
 }
 
-sub check_1_3_4
+sub check_1_4_4
 {
 	my $self = shift;
 
@@ -615,20 +616,20 @@ sub check_1_3_4
 	if (!$wal_links || $wal_links !~ m#^/# || $wal_links =~ m#^$self->{pgdata}/#)
 	{
 		$self->logmsg('1.12', 'WARNING', 'Subdirectory pg_wal is not on a separate partition than the PGDATA %s.');
-		$self->{results}{'1.3.4'} = 'FAILURE';
+		$self->{results}{'1.4.4'} = 'FAILURE';
 	}
 	if (!$temp_tbsp || $temp_tbsp !~ m#^/# || $temp_tbsp =~ m#^$self->{pgdata}/#)
 	{
 		$self->logmsg('1.13', 'WARNING', 'Subdirectory for temporary file is not on a separate partition than the PGDATA.');
-		$self->{results}{'1.3.4'} = 'FAILURE';
+		$self->{results}{'1.4.4'} = 'FAILURE';
 	}
-	if ($self->{results}{'1.3.4'} ne 'FAILURE')
+	if ($self->{results}{'1.4.4'} ne 'FAILURE')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 }
 
-sub check_1_3_5
+sub check_1_4_5
 {
 	my $self = shift;
 
@@ -636,12 +637,12 @@ sub check_1_3_5
 	my @encrypted = `lsblk -f 2>/dev/null | grep -v "^loop"`;
 	if ($#encrypted < 0) {
 		$self->logmsg('1.14', 'CRITICAL', 'Can not get information about encrypted partition, command lsblk is missing on this host.');
-		$self->{results}{'1.3.5'} = 'FAILURE';
+		$self->{results}{'1.4.5'} = 'FAILURE';
 	}
 	$self->logdata(@encrypted);
 }
 
-sub check_1_4
+sub check_1_5
 {
 	my $self = shift;
 
@@ -649,7 +650,7 @@ sub check_1_4
 	if ($self->{no_pg_version_check})
 	{
 		$self->logmsg('1.15', 'WARNING', 'PostgreSQL version check was disabled (--no-pg-version-check) can not look for minor version upgrade.');
-		$self->{results}{'1.4'} = 'FAILURE';
+		$self->{results}{'1.5'} = 'FAILURE';
 	}
 	else
 	{
@@ -660,7 +661,7 @@ sub check_1_4
 		if ($#versions < 0)
 		{
 			$self->logmsg('1.3', 'ERROR', 'No internet access to https://www.postgresql.org/.');
-			$self->{results}{'1.4'} = 'FAILURE';
+			$self->{results}{'1.5'} = 'FAILURE';
 			return;
 		}
 
@@ -672,22 +673,66 @@ sub check_1_4
 			my @cur = grep(/^$major\./, @cur_version);
 			if ($#cur < 0) {
 				$self->logmsg('1.4', 'CRITICAL', 'This PostgreSQL version, v%s, is no more supported.', $ver);
-				$self->{results}{'1.4'} = 'FAILURE';
+				$self->{results}{'1.5'} = 'FAILURE';
 			} elsif ($cur[0] > $ver) {
 				$self->logmsg('1.5', 'CRITICAL', 'This PostgreSQL version, v%s, is not the last one of this branch (%s)', $ver, $cur[0]);
 				$self->logmsg('1.6', 'INFO', 'See [Why upgrade](https://why-upgrade.depesz.com/show?from=%s&to=%s).', $ver, $cur[0]);
-				$self->{results}{'1.4'} = 'FAILURE';
+				$self->{results}{'1.5'} = 'FAILURE';
 			}
 		}
 
-		if ($self->{results}{'1.4'} ne 'FAILURE')
+		if ($self->{results}{'1.5'} ne 'FAILURE')
 		{
 			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 		}
 	}
 }
 
-sub check_1_5
+sub check_1_6
+{
+	my $self = shift;
+
+	my @ret = ();
+
+	# Verify That 'PGPASSWORD' is Not Set in Users' Profiles
+	push(@ret, `grep PGPASSWORD --no-messages /home/*/.*{rc,profile}`);
+	push(@ret, `grep PGPASSWORD --no-messages /root/.*{rc,profile}`);
+	push(@ret, `grep PGPASSWORD --no-messages /etc/environment`);
+	push(@ret, `grep PGPASSWORD --no-messages -r /etc/profile*/`);
+
+	if ($#ret >= 0) {
+		$self->logmsg('1.18', 'CRITICAL', 'Use of the PGPASSWORD environment variable is not recommanded.');
+		$self->{results}{'1.6'} = 'FAILURE';
+	}
+
+	if ($self->{results}{'1.6'} ne 'FAILURE')
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_1_7
+{
+	my $self = shift;
+
+	my @ret = ();
+
+	# Verify That 'PGPASSWORD' is Not in Use
+	push(@ret, `grep PGPASSWORD /proc/*/environ`);
+
+	if ($#ret >= 0) {
+		$self->logmsg('1.19', 'CRITICAL', 'the PGPASSWORD environment variable is in use.');
+		$self->{results}{'1.7'} = 'FAILURE';
+	}
+
+	if ($self->{results}{'1.7'} ne 'FAILURE')
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+
+sub check_1_8
 {
 	my $self = shift;
 
@@ -717,7 +762,7 @@ sub check_1_5
 	}
 }
 
-sub check_1_6
+sub check_1_9
 {
 	my $self = shift;
 
@@ -727,10 +772,10 @@ sub check_1_6
 	{
 		if ($d =~ m#$self->{pgdata}\/#) {
 			$self->logmsg('1.16', 'WARNING', 'Tablespace location %s should not be inside the data directory.', $d);
-			$self->{results}{'1.6'} = 'FAILURE';
+			$self->{results}{'1.8'} = 'FAILURE';
 		}
 	}
-	if ($self->{results}{'1.6'} ne 'FAILURE')
+	if ($self->{results}{'1.8'} ne 'FAILURE')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
