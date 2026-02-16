@@ -807,14 +807,11 @@ sub check_2_2
 {
 	my $self = shift;
 
-	# Verify that the PGDATA permissions are correct
-	my ($major, $minor) = split(/\./, $self->{cluster});
-
-	my $perm = `ls -la "$self->{pgdata}" | grep " \\.\$" | awk '{print \$1}'`;
-	chomp($perm);
-	$perm =~ s/\.$//;
-	if ($perm ne 'drwx------') {
-		$self->logmsg('2.2', 'CRITICAL', 'Permissions of the PGDATA (%s) are not secure: %s, must be drwx------.', $self->{pgdata}, $perm);
+	# Verify permission on extension directory
+	my $pextens = `ls -ld \$(pg_config --sharedir)/extension`;
+	chomp($pextens);
+	if ($pextens !~ /drwxr-xr-x \d+ root root/) {
+		$self->logmsg('2.6', 'CRITICAL', 'The permission on the extensions directory must be 0755 and owned by root for user and group. Currently it is set to %s.', $pextens);
 		$self->{results}{'2.2'} = 'FAILURE';
 	}
 	else
@@ -827,15 +824,66 @@ sub check_2_3
 {
 	my $self = shift;
 
-	# Have a look to the PGDATA to check for symlink or unwanted files
-	my ($major, $minor) = split(/\./, $self->{cluster});
-
-	my @content = `ls -la "$self->{pgdata}/"`;
-	unshift(@content, "$self->{pgdata}/\n");
-	$self->logdata(@content);
+	# Verify PostgreSQL command history
+	my @hist = `find /home -name ".psql_history" -type f -exec ls -la {} \\; 2>/dev/null | grep -v '/dev/null'`;
+	chomp(@hist);
+	if ($#hist >= 0)
+	{
+		my @logs = ();
+		foreach my $f (@hist)
+		{
+			$f =~ s/(?:.*?) \//\//;
+			my $n = $f;
+			$n =~ s/.*\///;
+			my $ret = `grep "HISTFILE /dev/null" $f/.psqlrc 2>/dev/null`;
+			chomp($ret);
+			my $devnull = 0;
+			$devnull = 1 if ($ret);
+			$ret = `grep "PSQL_HISTORY=/dev/null" /etc/environment 2>/dev/null`;
+			chomp($ret);
+			$devnull = 1 if ($ret);
+			if (!$devnull) {
+				$self->logmsg('2.7', 'CRITICAL', 'psql history file %s is not symbolically linked to /dev/null.', "$f/$n");
+			}
+		}
+		$self->{results}{'2.3'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
 }
 
 sub check_2_4
+{
+	my $self = shift;
+
+	# Verify password in service file
+	my @pass = `find / -name '.pg_service.conf' -type f 2>/dev/null | xargs -i grep -H password {}`;
+	chomp(@pass);
+	if (-e $ENV{PGSERVICEFILE}) {
+		push(@pass, `test -z "\${PGSERVICEFILE}" || grep -H password "\${PGSERVICEFILE}"`);
+	}
+	if (-e $ENV{PGSYSCONFDIR}) {
+		push(@pass, `test -z "\${PGSYSCONFDIR}" || grep -H password "\${PGSYSCONFDIR}/pg_service.conf"`);
+	}
+
+	if ($#pass >= 0)
+	{
+		foreach my $f (@pass)
+		{
+			$f =~ s/:.*//;
+			$self->logmsg('2.8', 'CRITICAL', 'password found in PostgreSQL connection service file %s.', $f);
+		}
+		$self->{results}{'2.4'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_2_5
 {
 	my $self = shift;
 
@@ -859,15 +907,15 @@ sub check_2_4
 		if ($perm ne 'drwx------')
 		{
 			$self->logmsg('2.4', 'CRITICAL', 'Permissions of the pg_hba.conf file (%s) are not secure: %s, must be -rw-r----- or -rw-------.', $pg_hba, $perm);
-			$self->{results}{'2.4'} = 'FAILURE';
+			$self->{results}{'2.5'} = 'FAILURE';
 		}
 	}
-	if ($self->{results}{'2.4'} ne 'FAILURE') {
+	if ($self->{results}{'2.5'} ne 'FAILURE') {
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 }
 
-sub check_2_5
+sub check_2_6
 {
 	my $self = shift;
 
@@ -884,11 +932,11 @@ sub check_2_5
 			if ($perm eq 'srwxrwxrwx' || $perm_sock[0] eq '0777')
 			{
 				$self->logmsg('2.5', 'WARNING', 'Permission on Unix socket %s should be more restrictive, for example: 0770 or 0700. Currently it is set to 0777.', "$d/.s.PGSQL.$perm_sock[2]");
-				$self->{results}{'2.5'} = 'FAILURE';
+				$self->{results}{'2.6'} = 'FAILURE';
 			}
 		}
 
-		if ($self->{results}{'2.5'} ne 'FAILURE')
+		if ($self->{results}{'2.6'} ne 'FAILURE')
 		{
 			$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 		}
@@ -898,6 +946,39 @@ sub check_2_5
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 }
+
+sub check_2_7
+{
+	my $self = shift;
+
+	# Verify that the PGDATA permissions are correct
+	my ($major, $minor) = split(/\./, $self->{cluster});
+
+	my $perm = `ls -la "$self->{pgdata}" | grep " \\.\$" | awk '{print \$1}'`;
+	chomp($perm);
+	$perm =~ s/\.$//;
+	if ($perm ne 'drwx------') {
+		$self->logmsg('2.2', 'CRITICAL', 'Permissions of the PGDATA (%s) are not secure: %s, must be drwx------.', $self->{pgdata}, $perm);
+		$self->{results}{'2.7'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_2_8
+{
+	my $self = shift;
+
+	# Have a look to the PGDATA to check for symlink or unwanted files
+	my ($major, $minor) = split(/\./, $self->{cluster});
+
+	my @content = `ls -la "$self->{pgdata}/"`;
+	unshift(@content, "$self->{pgdata}/\n");
+	$self->logdata(@content);
+}
+
 
 sub check_3
 {
