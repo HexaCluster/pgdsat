@@ -94,6 +94,7 @@ $VERSION = '1.2';
 		'5.17' => { 'errmsg' => 'parameter \'password_encryption\' should be set to \'scram-sha-256\', not \'%s\'.' },
 		'5.18' => { 'errmsg' => 'Some processes use a password in the PostgreSQL connection string.' },
 		'5.19' => { 'errmsg' => 'the value of the "listen_addresses" setting is too permissive.' },
+		'5.20' => { 'errmsg' => 'Some users has no connection limit.' },
 		'6.2' => { 'errmsg' => 'Setting \'%s\' must be disabled.' },
 		'6.3' => { 'errmsg' => 'Setting \'%s\' must be enabled.' },
 		'6.4' => { 'errmsg' => 'Setting \'post_auth_delay\' must be set to 0.' },
