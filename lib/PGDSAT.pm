@@ -319,6 +319,26 @@ sub logdata
 }
 
 ####
+# Print text using the default format and the current indentation
+# level. The lines to print must have the new line character at the end.
+####
+sub logtext
+{
+	my ($self, $text) = @_;
+
+	if ($self->{format} eq 'text')
+	{
+		$self->{details} .= "    "x$self->{current_indent} . "$text";
+		$self->{details} .= "\n";
+	}
+	elsif ($self->{format} eq 'html')
+	{
+		$self->{details} .= "<p>$text</p>\n";
+	}
+}
+
+
+####
 # Parse the pg_hba.conf file and return an array of hash for each entry
 ####
 sub load_pg_hba_file
@@ -1533,10 +1553,28 @@ sub check_4
 
 sub check_4_1
 {
-	# do nothing
+	my $self = shift;
+
+	# Ensure excessive administrative privileges are revoked
+	my $tmp = `grep postgres: /etc/shadow | cut -d: -f1-2`;
+	chomp($tmp);
+	if ($tmp =~ /postgres:!../)
+	{
+		$self->logmsg('4.1', 'CRITICAL', 'The PostgreSQL user can logging in interactively.');
+		$self->{results}{'4.1'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
 }
 
 sub check_4_2
+{
+	# do nothing
+}
+
+sub check_4_3
 {
 	my $self = shift;
 
@@ -1546,14 +1584,29 @@ sub check_4_2
 	if ($#{$self->{superusers}} > 0)
 	{
 		$self->logmsg('4.2', 'WARNING', 'There are more than one PostgreSQL superuser.');
-		$self->{results}{'4.2'} = 'FAILURE';
+		$self->{results}{'4.3'} = 'FAILURE';
 	}
 	unshift(@{$self->{superusers}}, "Role|Attributs|Description\n");
 	$self->logdata(@{$self->{superusers}});
 	map { s/\|.*//; } @{$self->{superusers}};
 }
 
-sub check_4_3
+sub check_4_4
+{
+	my $self = shift;
+
+	# Lock Out Accounts if Not Currently in Use
+	my @tmp = `$self->{psql} -AtXc "SELECT rolname FROM pg_catalog.pg_roles WHERE rolname !~ '^pg_' AND rolcanlogin;"`;
+	chomp(@tmp);
+	if ($#tmp >= 0)
+	{
+		$self->logmsg('4.9', 'INFO', 'Review the status of all database accounts that can login: %s', join(' | ', @tmp));
+		$self->logtext(join(', ', @tmp) . "\n");
+		#$self->{results}{'4.4'} = 'FAILURE';
+	}
+}
+
+sub check_4_5
 {
 	my $self = shift;
 
@@ -1584,7 +1637,7 @@ sub check_4_3
 	}
 }
 
-sub check_4_4
+sub check_4_6
 {
 	my $self = shift;
 
@@ -1625,7 +1678,7 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 	}
 }
 
-sub check_4_5
+sub check_4_7
 {
 	my $self = shift;
 
@@ -1634,7 +1687,7 @@ sub check_4_5
 	if ($#bypassrls > 0)
 	{
 		$self->logmsg('4.5', 'WARNING', 'Some PostgreSQL user have Bypass RLS enabled.');
-		$self->{results}{'4.5'} = 'FAILURE';
+		$self->{results}{'4.7'} = 'FAILURE';
 		$self->logdata(@bypassrls);
 	}
 	else
@@ -1668,7 +1721,7 @@ sub check_4_5
 	}
 }
 
-sub check_4_6
+sub check_4_8
 {
 	my $self = shift;
 
@@ -1677,7 +1730,7 @@ sub check_4_6
 	chomp($set_user);
 	if ($set_user !~ m#set_user#) {
 		$self->logmsg('4.6', 'WARNING', 'PostgreSQL extension set_user should be used.');
-		$self->{results}{'4.6'} = 'FAILURE';
+		$self->{results}{'4.8'} = 'FAILURE';
 	}
 	else
 	{
@@ -1693,7 +1746,7 @@ sub check_4_6
 	$self->logdata(@canlogin);
 }
 
-sub check_4_7
+sub check_4_9
 {
 	my $self = shift;
 
@@ -1706,7 +1759,7 @@ sub check_4_7
 	`$self->{psql} -AtXc "DROP VIEW pgdsat_roletree;"`;
 }
 
-sub check_4_8
+sub check_4_10
 {
 	my $self = shift;
 
@@ -1730,7 +1783,7 @@ sub check_4_8
 			$self->logmsg('4.8.' . $i, 'WARNING', 'Schema public can be used by anyone in database %s.', $db);
 			unshift(@public, "nspname|nspowner|nspacl\n");
 			$self->logdata(@public);
-			$self->{results}{'4.8'} = 'FAILURE';
+			$self->{results}{'4.10'} = 'FAILURE';
 			if ($self->{format} eq 'html') {
 				$self->{details} .= "</div>\n";
 				$self->{collapse_id}++;
@@ -1738,7 +1791,7 @@ sub check_4_8
 			$i++;
 		}
 	}
-	if ($self->{results}{'4.8'} ne 'FAILURE')
+	if ($self->{results}{'4.10'} ne 'FAILURE')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}

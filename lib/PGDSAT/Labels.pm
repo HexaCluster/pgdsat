@@ -252,40 +252,49 @@ PostgreSQL processes will be lost.',
 			'description' => 'These authorizations must be structured to block unauthorized use and/or corruption of vital data and services by setting restrictions on user capabilities.',
 		},
 		'4.1' => {
+			'title' => 'Ensure Interactive Login is Disabled',
+			'description' => 'Preventing the PostgreSQL user from logging in interactively may reduce the impact of a compromised PostgreSQL account.',
+		},
+		'4.2' => {
 			'title' => 'Ensure sudo is configured correctly',
 			'description' => 'Without sudo, there would be no capabilities to strictly control access to the superuser account nor to securely and authoritatively audit its use.',
 			'manual' => 1,
 		},
-		'4.2' => {
+		'4.3' => {
 			'title' => 'Ensure excessive administrative privileges are revoked',
 			'description' => 'By not restricting global administrative commands to superusers only, regular users granted excessive privileges may execute administrative commands with unintended and undesirable results.',
 		},
-		'4.3' => {
+		'4.4' => {
+			'title' => 'Lock Out Accounts if Not Currently in Use',
+			'description' => 'If users with database accounts will not be using the database for some time, disabling the account will reduce the risk of attacks or inappropriate account usage.',
+			'manual' => 1,
+		},
+		'4.5' => {
 			'title' => 'Ensure excessive function privileges are revoked',
 			'description' => 'Functions in PostgreSQL can be created with the SECURITY DEFINER option. When SECURITY DEFINER functions are executed by a user, said function is run with the privileges of the user who created it, not the user who is running it. List of the functions with SECURITY DEFINER option not associated to an extension, per database.',
 			'manual' => 1,
 		},
-		'4.4' => {
+		'4.6' => {
 			'title' => 'Ensure excessive DML privileges are revoked',
 			'description' => 'Excessive DML grants can lead to unprivileged users changing or deleting information without proper authorization.',
 			'manual' => 1,
 		},
-		'4.5' => {
+		'4.7' => {
 			'title' => 'Ensure Row Level Security (RLS) is configured correctly',
 			'description' => 'If RLS policies and privileges are not configured correctly, users could perform actions on tables that they are not authorized to perform, such as inserting, updating, or deleting rows. List tables with RLS enabled.',
 			'manual' => 1,
 		},
-		'4.6' => {
+		'4.8' => {
 			'title' => 'Ensure the set_user extension is installed',
 			'description' => 'Even when reducing and limiting the access to the superuser role, it is still difficult to determine who accessed the superuser role and what actions were taken using that role. As such, it is ideal to prevent anyone from logging in as the superuser and forcing them to escalate their role. The set_user extension allows for this setup.',
 			'manual' => 1,
 		},
-		'4.7' => {
+		'4.9' => {
 			'title' => 'Make use of predefined roles',
 			'description' => 'In keeping with the principle of least privilege, judicious use of the PostgreSQL predefined roles can greatly limit the access to privileged, or superuser, access.',
 			'manual' => 1,
 		},
-		'4.8' => {
+		'4.10' => {
 			'title' => 'Ensure the public schema is protected',
 			'description' => 'Privileges on the PostgreSQL default public schema must be restricted to some users, grant to public users must be removed or the schema dropped.',
 		},
