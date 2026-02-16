@@ -92,6 +92,8 @@ $VERSION = '1.2';
 		'5.15' => { 'errmsg' => 'You should be more specific and give the database and users allowed to connect, not "all". See line %s in file %s.' },
 		'5.16' => { 'errmsg' => 'You should not allow superusers to connect remotely, only from local and peer authentication. See line %s in file %s.' },
 		'5.17' => { 'errmsg' => 'parameter \'password_encryption\' should be set to \'scram-sha-256\', not \'%s\'.' },
+		'5.18' => { 'errmsg' => 'Some processes use a password in the PostgreSQL connection string.' },
+		'5.19' => { 'errmsg' => 'the value of the "listen_addresses" setting is too permissive.' },
 		'6.2' => { 'errmsg' => 'Setting \'%s\' must be disabled.' },
 		'6.3' => { 'errmsg' => 'Setting \'%s\' must be enabled.' },
 		'6.4' => { 'errmsg' => 'Setting \'post_auth_delay\' must be set to 0.' },

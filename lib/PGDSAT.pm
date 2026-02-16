@@ -1806,12 +1806,49 @@ sub check_5_1
 {
 	my $self = shift;
 
+	# Do Not Specify Passwords in the Command Line
+	my @procs = `ps -few`;
+	chomp(@procs);
+	if (grep(/postgresql:\/\/[^:]+:.*\@/, @procs))
+	{
+		$self->logmsg('5.18', 'CRITICAL', 'Some processes use a password in the PostgreSQL connection string.');
+		$self->{results}{'5.1'} = 'FAILURE';
+		return 0;
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_5_2
+{
+	my $self = shift;
+
+	# Ensure PostgreSQL is Bound to an IP Address
+	my $listen = `$self->{psql} -AtXc "SHOW listen_addresses;"`;
+	chomp($listen);
+	if ($listen =~ /(\*|0.0.0.0)/) {
+		$self->logmsg('5.19', 'CRITICAL', 'the value of the "listen_addresses" setting is too permissive.');
+		$self->{results}{'5.2'} = 'FAILURE';
+		return 0;
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_5_3
+{
+	my $self = shift;
+
 	# Ensure login via "local" UNIX Domain Socket is configured correctly
 	my $hba_file = `$self->{psql} -AtXc "SHOW hba_file;"`;
 	chomp($hba_file);
 	if (!$hba_file || !-e $hba_file) {
 		$self->logmsg('5.1', 'CRITICAL', 'Can not find pg_hba.conf file "%s".', $hba_file);
-		$self->{results}{'5.1'} = 'FAILURE';
+		$self->{results}{'5.3'} = 'FAILURE';
 		return 0;
 	}
 
@@ -1829,7 +1866,7 @@ sub check_5_1
 	}
 }
 
-sub check_5_2
+sub check_5_4
 {
 	my $self = shift;
 
@@ -1842,7 +1879,30 @@ sub check_5_2
 	}
 }
 
-sub check_5_3
+sub check_5_5
+{
+	my $self = shift;
+
+	# Ensure per-account connection limits are used
+	my @limit = `$self->{psql} -AtXc "SELECT rolname,rolconnlimit FROM pg_roles WHERE rolname NOT LIKE 'pg_%' and rolconnlimit = -1;"`;
+	chomp(@limit);
+	if ($#limit >= 0)
+	{
+		$self->logmsg('5.20', 'WARNING', 'Some users has no connection limit.');
+		unshift(@limit, "rolename|rolconnlimit\n");
+		$self->logdata(@limit);
+		$self->{results}{'5.5'} = 'FAILURE';
+		return 0;
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+
+}
+
+
+sub check_5_6
 {
 	my $self = shift;
 
@@ -1857,7 +1917,7 @@ sub check_5_3
 
 		if (!grep(/(credcheck|passwordcheck)/, @auth_lib)) {
 			$self->logmsg('5.8', 'CRITICAL', "no password difficulty enforcement library used. Consider using the credcheck or passwordcheck PostgreSQL extension.");
-			$self->{results}{'5.3'} = 'FAILURE';
+			$self->{results}{'5.6'} = 'FAILURE';
 		}
 		else
 		{
@@ -1867,7 +1927,7 @@ sub check_5_3
 	}
 }
 
-sub check_5_4
+sub check_5_7
 {
 	my $self = shift;
 
@@ -1878,7 +1938,7 @@ sub check_5_4
 	chomp($auth_timeout);
 	if ($auth_timeout > 60) {
 		$self->logmsg('5.9', 'WARNING', "setting 'authentication_timeout' should be <= 60s.");
-		$self->{results}{'5.4'} = 'FAILURE';
+		$self->{results}{'5.7'} = 'FAILURE';
 	}
 	# Search if an auth delay is set, auth_delay causes the server
 	# to pause briefly before reporting authentication failure
@@ -1886,15 +1946,15 @@ sub check_5_4
 	chomp(@auth_delay);
 	if (!grep(/\d+/, @auth_delay)) {
 		$self->logmsg('5.10', 'WARNING', 'you should add an authentication failure delay to prevent brute force attack. See PostgreSQL extension credcheck or auth_delay.');
-		$self->{results}{'5.4'} = 'FAILURE';
+		$self->{results}{'5.7'} = 'FAILURE';
 	}
-	if ($self->{results}{'5.4'} ne 'FAILURE')
+	if ($self->{results}{'5.7'} ne 'FAILURE')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 }
 
-sub check_5_5
+sub check_5_8
 {
 	my $self = shift;
 
@@ -1911,20 +1971,20 @@ sub check_5_5
 	if ($#ssl_msg >= 0)
 	{
 		$self->logmsg('5.11', 'WARNING', 'The use of the "host" connection type should be rejected when "hostssl" or "hostgssenc" is used. See line(s) %s in pg_hba.conf.',  join(', ', @ssl_msg));
-		$self->{results}{'5.5'} = 'FAILURE';
+		$self->{results}{'5.8'} = 'FAILURE';
 	}
 	elsif (!$self->{use_ssl} && !$self->{use_gssenc} && $self->{use_host})
 	{
 		$self->logmsg('5.12', 'CRITICAL', 'Use of ssl encryption for all remote connection should be used, see "hostssl" and "hostgssenc" connection type.');
-		$self->{results}{'5.5'} = 'FAILURE';
+		$self->{results}{'5.8'} = 'FAILURE';
 	}
-	if ($self->{results}{'5.5'} ne 'FAILURE')
+	if ($self->{results}{'5.8'} ne 'FAILURE')
 	{
 		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
 	}
 }
 
-sub check_5_6
+sub check_5_9
 {
 	my $self = shift;
 
@@ -1935,7 +1995,7 @@ sub check_5_6
 	}
 }
 
-sub check_5_7
+sub check_5_10
 {
 	my $self = shift;
 
@@ -1952,7 +2012,7 @@ sub check_5_7
 	}
 }
 
-sub check_5_8
+sub check_5_11
 {
 	my $self = shift;
 
@@ -1969,7 +2029,7 @@ sub check_5_8
 	}
 }
 
-sub check_5_9
+sub check_5_12
 {
 	my $self = shift;
 
@@ -1978,7 +2038,7 @@ sub check_5_9
 	chomp($pwd_enc_type);
 	if ($pwd_enc_type ne 'scram-sha-256') {
 		$self->logmsg('5.17', 'CRITICAL', 'parameter \'password_encryption\' should be set to \'scram-sha-256\', not \'%s\'.', $pwd_enc_type);
-		$self->{results}{'5.9'} = 'FAILURE';
+		$self->{results}{'5.12'} = 'FAILURE';
 	}
 	else
 	{
@@ -2013,7 +2073,7 @@ sub check_auth_method
 
 	if ($found)
 	{
-		$self->{results}{'5.1'} = 'FAILURE';
+		$self->{results}{'5.4'} = 'FAILURE';
 		$self->logdata("$entry->{source}\n");
 
 		my $method = 'peer';
@@ -2073,13 +2133,13 @@ sub check_ip_address
 	if ($mask eq '0.0.0.0' or $mask eq '::')
 	{
 		$self->logmsg('5.13', 'CRITICAL', 'the use of %s \'%s\' correspond to any source. See line %s in file %s.', $netmask_lbl, $entry->{netmask}, $entry->{line}, $entry->{file});
-		$self->{results}{'5.6'} = 'FAILURE';
+		$self->{results}{'5.9'} = 'FAILURE';
 	}
 	#elsif ($mask eq '255.0.0.0' or $size >= 18446744073709551616)
 	elsif ($mask eq '255.0.0.0' or $size > 65536)
 	{
 		$self->logmsg('5.14', 'WARNING', 'the use of %s \'%s\' correspond to a too huge Ip range. See line %s in file %s.', $netmask_lbl, $entry->{netmask}, $entry->{line}, $entry->{file});
-		$self->{results}{'5.6'} = 'FAILURE';
+		$self->{results}{'5.9'} = 'FAILURE';
 	}
 }
 

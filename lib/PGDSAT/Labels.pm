@@ -304,38 +304,50 @@ PostgreSQL processes will be lost.',
 			'description' => 'The restrictions on client/user connections to the PostgreSQL database blocks unauthorized access to data and services by setting access rules. These security measures help to ensure that successful logins cannot be easily made through brute-force password attacks, replaying the password hash, or intuited by clever social engineering exploits.',
 		},
 		'5.1' => {
+			'title' => 'Do Not Specify Passwords in the Command Line',
+			'description' => 'If the password is visible in the process list or user\'s shell/command history, an attacker will be able to access the PostgreSQL database using the stolen credentials.',
+		},
+		'5.2' => {
+			'title' => 'Ensure PostgreSQL is Bound to an IP Address',
+			'description' => 'Limiting the IP addresses that PostgreSQL listens on provides additional restrictions on where client applications/users can connect from.',
+		},
+		'5.3' => {
 			'title' => 'Ensure login via "local" UNIX Domain Socket is configured correctly',
 			'description' => 'A remote host login, via SSH, is arguably the most secure means of remotely accessing and administering the PostgreSQL server. Once connected to the PostgreSQL server, using the psql client, via UNIX DOMAIN SOCKETS, while using the peer authentication method is the most secure mechanism available for local database connections.',
 		},
-		'5.2' => {
+		'5.4' => {
 			'title' => 'Ensure login via "host" TCP/IP Socket is configured correctly',
 			'description' => 'A large number of authentication methods are available for hosts connecting using TCP/IP sockets. Methods trust, password, and ident are not to be used for remote logins. Method md5 used to be the most popular and can be used in both encrypted and unencrypted sessions, however, it is vulnerable to packet replay attacks. It is recommended that scram-sha-256 be used instead of md5. Use of the gss, sspi, pam, ldap, radius, and cert methods are dependent upon the availability of external authenticating processes/services and thus are not covered here.',
 		},
-		'5.3' => {
+		'5.5' => {
+			'title' => 'Ensure per-account connection limits are used',
+			'description' => 'Limiting the number of concurrent sessions at the user level helps to reduce the risk of DoS attacks.',
+		},
+		'5.6' => {
 			'title' => 'Ensure Password Complexity is configured',
 			'description' => 'Having strong password management for your locally-authenticated PostgreSQL accounts will protect against attackers\' brute force techniques. This is important especially if external authentication is not possible to implement due to application requirements or restrictions.',
 		},
-		'5.4' => {
+		'5.7' => {
 			'title' => 'Ensure authentication timeout and delay are well configured',
 			'description' => 'Authentication timeout is the maximum amount of time allowed to complete client authentication. If a would-be client has not completed the authentication protocol in this much time, the server closes the connection. This prevents hung clients from occupying a connection indefinitely. Authentication delay causes the server to pause briefly before reporting authentication failure, to make brute-force attacks on database passwords more difficult. (*)',
 		},
-		'5.5' => {
+		'5.8' => {
 			'title' => 'Ensure SSL is used for client connection',
 			'description' => 'All remote client connection should be encrypted and non encrypted connexion  should be reject to not permit data sniffing on the network. (*)',
 		},
-		'5.6' => {
+		'5.9' => {
 			'title' => 'Ensure authorized Ip addresses ranges are not too large',
 			'description' => 'Allowing a too large range of Ip addresses to connect to PostgreSQL cluster multiply the risks unnecessarily. (*)',
 		},
-		'5.7' => {
+		'5.10' => {
 			'title' => 'Ensure specific database and users are used',
 			'description' => 'The keyword "all" in the database and user part of the pg_hba.conf rules can allow any user to connect to any database, it is recommended to restrict the connection to specific user and database. (*)',
 		},
-		'5.8' => {
+		'5.11' => {
 			'title' => 'Ensure superusers are not allowed to connect remotely',
 			'description' => 'Allowing a PostgreSQL superuser to connect to a database from a remote host is dangerous, best is to only allow the superuser(s) to connect locally with a peer authentication. If some advanced privileges are required, best is to use the PostgreSQL predefined roles. (*)',
 		},
-		'5.9' => {
+		'5.12' => {
 			'title' => 'Ensure that \'password_encryption\' is correctly set',
 			'description' => 'PostgreSQL allow to set password encryption, default is now \'scram-sha-256\' but it can be set to \'md5\' which is insecure. (*)',
 		},
