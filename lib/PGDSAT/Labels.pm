@@ -25,6 +25,7 @@ $VERSION = '1.2';
 		'1.1' => {
 			'title' => 'Ensure packages are obtained from authorized repositories',
 			'description' => 'Identify and inspect configured repositories to ensure they are all valid and authorized sources of packages.',
+			'manual' => 1,
 		},
 		'1.1.1' => {
 			'title' => 'Ensure packages are obtained from PGDG',
@@ -460,6 +461,7 @@ PostgreSQL processes will be lost.',
 		'1.1' => {
 			'title' => 'Vérifier que les packages sont obtenus à partir de dépots autorisés',
 			'description' => 'Identifiez et inspectez les dépots configurés pour vous assurer qu\'ils constituent tous des sources de packages valides et autorisées.',
+			'manual' => 1,
 		},
 		'1.1.2' => {
 			'title' => 'Vérifier que les packages sont obtenus auprès de PGDG',
@@ -867,6 +869,7 @@ postgresql might have been installed upon a system. Unused packages can increase
 		'1.1' => {
 			'title' => '确保软件包来自授权存储库',
 			'description' => '识别并检查配置的存储库，以确保它们都是有效且经过授权的软件包来源。',
+			'manual' => 1,
 		},
 		'1.1.1' => {
 			'title' => '确保软件包来自 PGDG',

@@ -20,6 +20,7 @@ $VERSION = '1.2';
 %AUDIT_MSG = (
 	'en_US' => {
 		'0.1' => { 'errmsg' => 'Test passed'},
+		'1.0' => { 'errmsg' => 'No source package repository found.' },
 		'1.1' => { 'errmsg' => 'No PostgreSQL packages found.' },
 		'1.2' => { 'errmsg' => 'PostgreSQL packages are not from the PGDG repository.' },
 		'1.3' => { 'errmsg' => 'No internet access to https://www.postgresql.org/.' },
@@ -123,6 +124,7 @@ $VERSION = '1.2';
 	'fr_FR' => {
 #-----------------------------------------------------------------------------
 		'0.1' => { 'errmsg' => 'Test réussi'},
+		'1.0' => { 'errmsg' => 'Aucun dépôt de source de paquet trouvé.' },
 		'1.1' => { 'errmsg' => 'Aucun paquet PostgreSQL trouvé.' },
 		'1.2' => { 'errmsg' => 'Les packages PostgreSQL ne proviennent pas du référentiel PGDG.' },
 		'1.3' => { 'errmsg' => 'Pas d\'accès Internet à https://www.postgresql.org/.' },
@@ -225,6 +227,7 @@ $VERSION = '1.2';
 	'zh_CN' => {
 #-----------------------------------------------------------------------------
 		'0.1' => { 'errmsg' => '测试通过'},
+		'1.0' => { 'errmsg' => '未找到源软件包存储库。' },
 		'1.1' => { 'errmsg' => '未找到 PostgreSQL 包。' },
 		'1.2' => { 'errmsg' => 'PostgreSQL 包不是来自 PGDG 仓库。' },
 		'1.3' => { 'errmsg' => '无法访问 https://www.postgresql.org/。' },

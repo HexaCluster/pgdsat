@@ -446,7 +446,17 @@ sub check_1
 
 sub check_1_1
 {
-	# nothing to do
+	my $self = shift;
+
+	my @repos = `yum repolist enabled 2>/dev/null`;
+	if ($#repos < 0) {
+		@repos = `grep -rE '^(deb|URI)' /etc/apt/sources.list* 2>/dev/null`;
+	}
+	if ($#repos < 0) {
+		$self->logmsg('1.0', 'WARNING', 'No source package repository found.');
+		$self->{results}{'1.1'} = 'FAILURE';
+	}
+	$self->logdata(@repos)
 }
 
 sub check_1_1_1
