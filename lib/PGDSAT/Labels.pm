@@ -12,6 +12,10 @@ use strict;
 
 $VERSION = '1.2';
 
+####
+# IMPORTANT: the item number must correspond to those displayed in the report
+# and those used in lib/PGDSAT.pm in the $self->{results} hash.
+####
 %AUDIT_LBL = (
 	'en_US' => {
 
@@ -357,6 +361,8 @@ PostgreSQL processes will be lost.',
 		},
 		'6.1' => {
 			'title' => 'Understanding attack vectors and runtime parameters',
+			'description' => 'There are as many ways of compromising a server as there are runtime parameters. A combination of any one or more of them executed at the right time under the right conditions has the potential to compromise the RDBMS. Mitigating risk is dependent upon one\'s understanding of the attack vectors and includes: 1.) Via user session: includes those runtime parameters that can be set by a ROLE that persists for the life of a server-client session. 2.) Via attribute: includes those runtime parameters that can be set by a ROLE during a server-client session that can be assigned as an attribute for an entity such as a table, index, database, or role. 3.) Via server reload: includes those runtime parameters that can be set by the superuser using a SIGHUP or configuration file reload command and affects the entire cluster. 4.) Via server restart: includes those runtime parameters that can be set and effected by restarting the server process and affects the entire cluster.',
+			'manual' => 1,
 		},
 		'6.2' => {
 			'title' => 'Ensure \'backend\' runtime parameters are configured correctly',
@@ -395,6 +401,10 @@ PostgreSQL processes will be lost.',
 			'description' => 'PostgreSQL instances handling data that requires "data at rest" protections must employ cryptographic mechanisms to prevent unauthorized disclosure and modification of the information at rest. These cryptographic mechanisms may be native to PostgreSQL or implemented via additional software or operating system/file system settings, as appropriate to the situation.',
 		},
 		'6.10' => {
+			'title' => 'Ensure Weak SSL/TLS Ciphers Are Disabled',
+			'description' => 'The PostgreSQL ssl_ciphers directive specifies which Cipher Suites are allowed in the negotiation with the client. In cryptography, perfect forward secrecy (PFS), also known as forward secrecy (FS), is a feature of specific key exchange protocols that give assurance that the session keys will not be compromised even if the private key of the server is compromised. For instance, RSA does not provide PFS, while the ECDHE (Elliptic-Curve Diffie-Hellman Ephemeral) and DHE (Diffie-Hellman Ephemeral) provides PFS.  ECDHE is the stronger protocol and should be preferred, while DHE may be allowed for greater compatibility with older clients. Only Cipher Suites with either the ECDHE or the DHE key exchange are allowed.',
+		},
+		'6.11' => {
 			'title' => 'Ensure a data anonymization extension is installed',
 			'description' => 'To mask or replace information that could permit to identify a person or to prevent exposing sensitive data, a data anomymization extension should be installed on the PostgreSQL cluster. Check that extensions pg_anonymize or anon are set in \'session_preload_libraries\' (*).',
 		},
@@ -760,6 +770,8 @@ postgresql might have been installed upon a system. Unused packages can increase
 		},
 		'6.1' => {
 			'title' => 'Comprendre les vecteurs d\'attaque et les paramètres d\'exécution',
+			'description' => 'Il existe autant de façons de compromettre un serveur que de paramètres d\'exécution. La combinaison d\'une ou plusieurs de ces méthodes, exécutée au bon moment et dans les bonnes conditions, peut potentiellement compromettre le SGBDR. La réduction des risques dépend de la compréhension des vecteurs d\'attaque et comprend : 1) Via la session utilisateur : il s\'agit des paramètres d\'exécution définis par un rôle et persistants pendant toute la durée de la session client-serveur. 2) Via un attribut : il s\'agit des paramètres d\'exécution définis par un rôle pendant une session client-serveur et pouvant être attribués comme attribut à une entité telle qu\'une table, un index, une base de données ou un rôle. 3) Via le rechargement du serveur : il s\'agit des paramètres d\'exécution définis par le superutilisateur à l\'aide d\'un signal SIGHUP ou d\'une commande de rechargement du fichier de configuration, affectant l\'ensemble du cluster. 4) Via le redémarrage du serveur : il s\'agit des paramètres d\'exécution définis et affectés par le redémarrage du processus serveur, affectant l\'ensemble du cluster.',
+			'manual' => 1,
 		},
 		'6.2' => {
 			'title' => 'Vérifier que les paramètres d\'exécution du \'backend\' sont correctement configurés',
@@ -798,6 +810,10 @@ postgresql might have been installed upon a system. Unused packages can increase
 			'description' => 'Les instances PostgreSQL traitant des données qui nécessitent des protections "données au repos" doivent utiliser des mécanismes cryptographiques pour empêcher la divulgation et la modification non autorisées des informations au repos. Ces mécanismes cryptographiques peuvent être natifs de PostgreSQL ou implémentés via un logiciel supplémentaire ou des paramètres de système d\'exploitation/système de fichiers, selon la situation.',
 		},
 		'6.10' => {
+			'title' => 'Ensure Weak SSL/TLS Ciphers Are Disabled',
+			'description' => 'La directive `ssl_ciphers` de PostgreSQL spécifie les suites de chiffrement autorisées lors de la négociation avec le client. En cryptographie, la confidentialité persistante (PFS), également appelée confidentialité persistante (FS), est une caractéristique de certains protocoles d\'échange de clés. Elle garantit que les clés de session ne seront pas compromises, même si la clé privée du serveur l\'est. Par exemple, RSA ne prend pas en charge la PFS, contrairement à ECDHE (Elliptic-Curve Diffie-Hellman Ephemeral) et DHE (Diffie-Hellman Ephemeral). ECDHE est le protocole le plus robuste et est donc à privilégier. DHE peut être autorisé pour une meilleure compatibilité avec les clients plus anciens. Seules les suites de chiffrement utilisant l\'échange de clés ECDHE ou DHE sont autorisées.',
+		},
+		'6.11' => {
 			'title' => 'Vérifier qu\'une extension d\'anonymisation de données installée',
 			'description' => 'Pour masquer ou remplacer les informations permettant l\'identification des personnes ou empêcher l\'exposition de données sensibles, une extension d\'anonymisation des données devrait être installée sur l\'instance PostgreSQL. Verification que les extensions pg_anonymize ou anon sont définies dans \'session_preload_libraries\' (*).',
 		},
@@ -1159,6 +1175,8 @@ postgresql might have been installed upon a system. Unused packages can increase
 		},
 		'6.1' => {
 			'title' => '了解攻击媒介和运行时参数',
+			'description' => '服务器的攻击手段与运行时参数的数量一样多。在合适的时机和条件下，任意一种或多种攻击手段的组合都可能危及关系数据库管理系统（RDBMS）的安全。降低风险取决于对攻击向量的理解，具体包括：1）通过用户会话：包括那些可由角色设置的、在服务器-客户端会话期间持续存在的运行时参数。2）通过属性：包括在服务器-客户端会话期间可由角色设置的、可作为实体（例如表、索引、数据库或角色）属性的运行时参数。3）通过服务器重载：包括那些可由超级用户使用 SIGHUP 信号或配置文件重载命令设置的、影响整个集群的运行时参数。4）通过服务器重启：包括那些可通过重启服务器进程来设置和生效的、影响整个集群的运行时参数。',
+			'manual' => 1,
 		},
 		'6.2' => {
 			'title' => '确保 \'backend\' 运行时参数配置正确',
@@ -1197,6 +1215,10 @@ postgresql might have been installed upon a system. Unused packages can increase
 			'description' => '处理需要“静态数据”保护的数据的 PostgreSQL 实例必须采用加密机制来防止未经授权披露和修改静态信息。这些加密机制可能是 PostgreSQL 原生的，也可以通过其他软件或操作系统/文件系统设置实现，具体取决于具体情况。',
 		},
 		'6.10' => {
+			'title' => '确保禁用弱 SSL/TLS 加密套件。',
+			'description' => 'PostgreSQL 的 ssl_ciphers 指令指定了与客户端协商时允许使用的密码套件。在密码学中，完美前向保密 (PFS)，也称为前向保密 (FS)，是特定密钥交换协议的一项特性，它能确保即使服务器的私钥泄露，会话密钥也不会泄露。例如，RSA 不提供 PFS，而 ECDHE（椭圆曲线 Diffie-Hellman 临时密钥交换）和 DHE（Diffie-Hellman 临时密钥交换）提供 PFS。ECDHE 是更强大的协议，应优先使用，而 DHE 可以用于更好地兼容旧版客户端。仅允许使用 ECDHE 或 DHE 密钥交换的密码套件。',
+		},
+		'6.11' => {
 			'title' => '确保安装了数据匿名化扩展',
 			'description' => '为了掩盖或替换可能允许识别人员的信息或防止泄露敏感数据，应在 PostgreSQL 集群上安装数据匿名化扩展。检查 \'session_preload_libraries\' (*) 中是否设置了扩展 pg_anonymize 或 anon。',
 		},

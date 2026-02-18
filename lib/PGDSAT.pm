@@ -1622,7 +1622,7 @@ sub check_4_5
 		my @secdef = `$self->{psql} -d $db -AtXc "SELECT p.oid, nspname, proname, rolname, prosecdef, proconfig, proacl FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid JOIN pg_authid a ON a.oid = p.proowner WHERE proname NOT LIKE 'pgaudit%' AND (prosecdef OR NOT proconfig IS NULL) AND NOT EXISTS (SELECT 1 FROM pg_catalog.pg_depend d WHERE d.refclassid = 'pg_catalog.pg_extension'::pg_catalog.regclass AND d.objid = p.oid AND d.deptype = 'e');"`;
 		if ($#secdef >= 0)
 		{
-			$self->logmsg('4.3.' . $i, 'head3', $db);
+			$self->logmsg('4.5.' . $i, 'head3', $db);
 			unshift(@secdef, join('|', qw/oid nspname proname rolname prosecdef proconfig proacl/) . "\n");
 			if ($self->{format} eq 'html') {
 				$self->{details} .= "<div id=\"collapse-$self->{collapse_id}\" class=\"collapse\">\n";
@@ -1663,7 +1663,7 @@ has_table_privilege(u.usename, '\\"'||t.schemaname||'\\".\\"'||t.tablename||'\\"
 ) AND NOT usesuper;"`;
 		if ($#secdef >= 0)
 		{
-			$self->logmsg('4.4.' . $i, 'head3', $db);
+			$self->logmsg('4.6.' . $i, 'head3', $db);
 			if ($self->{format} eq 'html') {
 				$self->{details} .= "<div id=\"collapse-$self->{collapse_id}\" class=\"collapse\">\n";
 			}
@@ -1706,7 +1706,7 @@ sub check_4_7
 		my @rls = `$self->{psql} -d $db -AtXc "SELECT oid, relname, relrowsecurity FROM pg_class WHERE relrowsecurity IS TRUE;"`;
 		if ($#rls >= 0)
 		{
-			$self->logmsg('4.5.' . $i, 'head3', $db);
+			$self->logmsg('4.7.' . $i, 'head3', $db);
 			if ($self->{format} eq 'html') {
 				$self->{details} .= "<div id=\"collapse-$self->{collapse_id}\" class=\"collapse\">\n";
 			}
@@ -1776,11 +1776,11 @@ sub check_4_10
 		my @public = `$self->{psql} -d $db -AtXc "SELECT nspname, nspowner, nspacl FROM pg_catalog.pg_namespace WHERE nspname='public';"`;
 		if ($public[0] =~ m#,=U[C]?/#s)
 		{
-			$self->logmsg('4.8.' . $i, 'head3', $db);
+			$self->logmsg('4.10.' . $i, 'head3', $db);
 			if ($self->{format} eq 'html') {
 				$self->{details} .= "<div id=\"collapse-$self->{collapse_id}\" class=\"collapse\">\n";
 			}
-			$self->logmsg('4.8.' . $i, 'WARNING', 'Schema public can be used by anyone in database %s.', $db);
+			$self->logmsg('4.10.' . $i, 'WARNING', 'Schema public can be used by anyone in database %s.', $db);
 			unshift(@public, "nspname|nspowner|nspacl\n");
 			$self->logdata(@public);
 			$self->{results}{'4.10'} = 'FAILURE';
@@ -2356,13 +2356,57 @@ sub check_6_10
 {
 	my $self = shift;
 
-	$self->logmsg('6.10', 'head2', 'Ensure a data anonymization extension is installed');
+	my @allowed_ciphers = (
+		'TLS_AES_256_GCM_SHA384',
+		'TLS_AES_128_GCM_SHA256',
+		'TLS_AES_128_CCM_SHA256',
+		'TLS_CHACHA20_POLY1305_SHA256',
+		'ECDHE-ECDSA-AES256-CCM',
+		'ECDHE-ECDSA-AES128-CCM',
+		'DHE-RSA-AES256-CCM',
+		'DHE-RSA-AES128-CCM',
+		'ECDHE-RSA-AES256-GCM-SHA384',
+		'ECDHE-RSA-AES128-GCM-SHA256',
+		'ECDHE-ECDSA-AES256-GCM-SHA384',
+		'ECDHE-ECDSA-AES128-GCM-SHA256',
+		'DHE-DSS-AES256-GCM-SHA384',
+		'DHE-DSS-AES128-GCM-SHA256',
+		'DHE-RSA-AES256-GCM-SHA384',
+		'DHE-RSA-AES128-GCM-SHA256',
+		'ECDHE-ECDSA-CHACHA20-POLY1305',
+		'ECDHE-RSA-CHACHA20-POLY1305',
+		'DHE-RSA-CHACHA20-POLY1305',
+	);
+
+	my $ciphers = `$self->{psql} -AtXc "SHOW ssl_ciphers;"`;
+	chomp($ciphers);
+	my @list = split(/:/, $ciphers);
+	my $found = 1;
+	foreach my $c (@list) {
+		$found = 0 if (!grep(/^$c$/i, @allowed_ciphers));
+	}
+	if (!$found)
+	{
+		$self->logmsg('6.13', 'CRITICAL', 'Only Cipher Suites which provide forward secrecy should be allowed.');
+		$self->logmsg('6.14', 'INFO', 'Here is the list of recommanded cyphers: %s.', join(',', @allowed_ciphers));
+		$self->{results}{'6.10'} = 'FAILURE';
+	}
+	else
+	{
+		$self->logmsg('0.1', 'SUCCESS', 'Test passed');
+	}
+}
+
+sub check_6_11
+{
+	my $self = shift;
+
 	my $has_anon = `$self->{psql} -AtXc "SHOW session_preload_libraries;"`;
 	chomp($has_anon);
 	my @libs = split(/,/, $has_anon);
 	if (!grep(/^(anon|pg_anonymize)$/, @libs)) {
 		$self->logmsg('6.12', 'WARNING', 'Extensions pg_anonymize or anon are not installed.');
-		$self->{results}{'6.10'} = 'FAILURE';
+		$self->{results}{'6.11'} = 'FAILURE';
 	}
 	else
 	{

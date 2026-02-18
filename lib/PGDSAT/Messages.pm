@@ -12,10 +12,11 @@ use strict;
 
 $VERSION = '1.2';
 
-# The numbering here try to follow the numbering in the PGDSAT::Labels file
-# but it is not requires. We just keep the numbering from PGDSAT::Labels
-# to easily find the relation between the messages and the tests.
-
+####
+# The numbering here tries to follow the numbering in the PGDSAT::Labels file
+# but it is not required except with message of third level set dynamically.
+####
+#
 %AUDIT_MSG = (
 	'en_US' => {
 		'0.1' => { 'errmsg' => 'Test passed'},
@@ -73,8 +74,8 @@ $VERSION = '1.2';
 		'4.1' => { 'errmsg' => 'The PostgreSQL user can logging in interactively.' },
 		'4.2' => { 'errmsg' => 'There are more than one PostgreSQL superuser.' },
 		'4.5' => { 'errmsg' => 'Some PostgreSQL user have Bypass RLS enabled.' },
-		'4.8' => { 'errmsg' => 'Schema public can be used by anyone in database %s.' },
 		'4.9' => { 'errmsg' => 'Review the status of all database accounts that can login.' },
+		'4.10' => { 'errmsg' => 'Schema public can be used by anyone in database %s.' },
 		'5.1' => { 'errmsg' => 'Can not find pg_hba.conf file "%s".' },
 		'5.2' => { 'errmsg' => 'Can not read pg_hba.conf file "%s", reason: "%s".' },
 		'5.3' => { 'errmsg' => 'Can not open directory "%s", reason: "%s".' },
@@ -106,6 +107,8 @@ $VERSION = '1.2';
 		'6.10' => { 'errmsg' => 'To enforce TLS authentication for the server, appropriate "hostssl" or "hostgssenc" records must be added to the pg_hba.conf file and "host" connections rejected.' },
 		'6.11' => { 'errmsg' => 'Extensions pgcrypto or pgsodium are not installed.' },
 		'6.12' => { 'errmsg' => 'Extensions pg_anonymize or anon are not installed.' },
+		'6.13' => { 'errmsg' => 'Only Cipher Suites which provide forward secrecy should be allowed.' },
+		'6.14' => { 'errmsg' => 'Here is the list of recommanded cyphers: %s.' },
 		'7.1' => { 'errmsg' => 'A replication-only user should be created.' },
 		'7.2' => { 'errmsg' => 'Setting \'log_replication_commands\' should be enabled.' },
 		'7.4' => { 'errmsg' => 'WAL archiving is not activated. Setting \'archive_mode\' must be enabled.' },
@@ -174,8 +177,8 @@ $VERSION = '1.2';
 		'4.1' => { 'errmsg' => 'L\'utilisateur PostrgeSQL peut se connecter interactivement.' },
 		'4.2' => { 'errmsg' => 'Il existe plusieurs superutilisateurs PostgreSQL.' },
 		'4.5' => { 'errmsg' => 'Certains utilisateurs de PostgreSQL ont activé Bypass RLS.' },
-		'4.8' => { 'errmsg' => 'Le schema public peut être utilisé par tout le monde dans la base %s.' },
 		'4.9' => { 'errmsg' => 'Vérifiez le status de tous les utilisateurs qui peuvent se connecter aux bases de données.' },
+		'4.10' => { 'errmsg' => 'Le schema public peut être utilisé par tout le monde dans la base %s.' },
 		'5.1' => { 'errmsg' => 'Impossible de trouver le fichier pg_hba.conf "%s".' },
 		'5.2' => { 'errmsg' => 'Impossible de lire le fichier pg_hba.conf "%s", raison : "%s".' },
 		'5.3' => { 'errmsg' => 'Impossible d\'ouvrir le répertoire "%s", raison : "%s".' },
@@ -207,6 +210,8 @@ $VERSION = '1.2';
 		'6.10' => { 'errmsg' => 'Pour appliquer l\'authentification TLS pour le serveur, les enregistrements "hostssl" ou "hostgssenc" appropriés doivent être ajoutés au fichier pg_hba.conf et les connexions "host" rejetées.' },
 		'6.11' => { 'errmsg' => 'Les extensions pgcrypto ou pgsodium ne sont pas installées.' },
 		'6.12' => { 'errmsg' => 'Les extensions pg_anonymize ou anon ne sont pas installées.' },
+		'6.13' => { 'errmsg' => 'Seules les suites de chiffrement assurant la confidentialité persistante devraient être autorisées.' },
+		'6.14' => { 'errmsg' => 'Voici la liste des suites de chiffrement recommandées : %s.' },
 		'7.1' => { 'errmsg' => 'Un utilisateur réservé à la réplication doit être créé.' },
 		'7.2' => { 'errmsg' => 'Le paramètre \'log_replication_commands\' doit être activé.' },
 		'7.4' => { 'errmsg' => 'L\'archivage WAL n\'est pas activé. Le paramètre \'archive_mode\' doit être activé.' },
@@ -274,8 +279,8 @@ $VERSION = '1.2';
 		'4.1' => { 'errmsg' => 'PostgreSQL 用户可以通过交互方式登录。' },
 		'4.2' => { 'errmsg' => '存在多个 PostgreSQL 超级用户。' },
 		'4.5' => { 'errmsg' => '某些 PostgreSQL 用户已启用 Bypass RLS。' },
-		'4.8' => { 'errmsg' => '公共模式可被数据库 %s 中的任何人使用。' },
 		'4.9' => { 'errmsg' => '检查所有可登录的数据库帐户的状态。' },
+		'4.10' => { 'errmsg' => '公共模式可被数据库 %s 中的任何人使用。' },
 		'5.1' => { 'errmsg' => '无法找到 pg_hba.conf 文件 "%s"。' },
 		'5.2' => { 'errmsg' => '无法读取 pg_hba.conf 文件 "%s"，原因："%s"。' },
 		'5.3' => { 'errmsg' => '无法打开目录 "%s"，原因："%s"。' },
@@ -307,6 +312,8 @@ $VERSION = '1.2';
 		'6.10' => { 'errmsg' => '为了强制 TLS 认证，必须在 pg_hba.conf 文件中添加适当的 "hostssl" 或 "hostgssenc" 记录，并拒绝 "host" 连接。' },
 		'6.11' => { 'errmsg' => '未安装扩展 pgcrypto 或 pgsodium。' },
 		'6.12' => { 'errmsg' => '未安装扩展 pg_anonymize 或 anon。' },
+		'6.13' => { 'errmsg' => '只允许使用提供前向保密性的密码套件。' },
+		'6.14' => { 'errmsg' => '以下是推荐的密码列表：%s。' },
 		'7.1' => { 'errmsg' => '应创建一个仅用于复制的用户。' },
 		'7.2' => { 'errmsg' => '应启用设置 \'log_replication_commands\'。' },
 		'7.4' => { 'errmsg' => 'WAL 存档未激活。必须启用设置 \'archive_mode\'。' },
