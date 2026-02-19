@@ -81,6 +81,7 @@ sub _init
 	$self->{user} = $options{user} || '';
 	$self->{database} = $options{database} || '';
 	$self->{psql} = $options{psql} || 'psql';
+	$self->{pgconfig} = $options{pgconfig} || 'pg_config';
 	$self->{pgdata} = $options{pgdata} || '';
 
 	# variables to store information that are used in several methods
@@ -838,9 +839,26 @@ sub check_2_2
 	my $self = shift;
 
 	# Verify permission on extension directory
-	my $pextens = `ls -ld \$(pg_config --sharedir)/extension`;
+
+	# Get shared directory
+	my $shrdir = `$self->{pgconfig} --sharedir 2>&1`;
+	my $shrdirstat = $?;
+	chomp($shrdir);
+
+	# Get exrtensions directory permissions
+	my $pextens = `ls -ld $shrdir/extension 2>&1`;
+	my $pextenstat = $?;
 	chomp($pextens);
-	if ($pextens !~ /drwxr-xr-x \d+ root root/) {
+
+	if ($shrdirstat != 0) {
+		$self->logmsg('2.9', 'CRITICAL', 'Failed to get shared directory using %s. Error code %s.', $self->{pgconfig}, $shrdirstat >> 8);
+		$self->{results}{'2.2'} = 'FAILURE';
+	}
+	elsif ($pextenstat != 0) {
+		$self->logmsg('2.10', 'CRITICAL', 'Failed to get permission on the extensions directory %s. Error code %s.', $shrdir, $pextenstat >> 8);
+		$self->{results}{'2.2'} = 'FAILURE';
+	}
+	elsif ( $pextens !~ /drwxr-xr-x \d+ root root/) {
 		$self->logmsg('2.6', 'CRITICAL', 'The permission on the extensions directory must be 0755 and owned by root for user and group. Currently it is set to %s.', $pextens);
 		$self->{results}{'2.2'} = 'FAILURE';
 	}
