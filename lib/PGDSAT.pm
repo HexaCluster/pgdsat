@@ -213,6 +213,11 @@ sub logmsg
 
 	if ($self->{format} eq 'text')
 	{
+		# Remove any HTML internal link in text output format
+		if (exists $PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{'description'}) {
+			$PGDSAT::Labels::AUDIT_LBL{$self->{lang}}{$level}{'description'} =~ s/<a href="#[0-9\.]+">(.*?)<\/a>/$1/;
+		}
+
 		if ($indent eq 'head1')
 		{
 			$self->{current_indent} = 1;
