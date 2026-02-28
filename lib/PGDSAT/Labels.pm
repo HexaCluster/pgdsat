@@ -438,7 +438,7 @@ PostgreSQL processes will be lost.',
 		},
 		'8.1' => {
 			'title' => 'Ensure PostgreSQL subdirectory locations are outside the data cluster',
-			'description' => 'This report is part of chapter <a href="#1.3">"1.3 Ensure Data Cluster Initialized Successfully"</a>.',
+			'description' => 'This report is part of chapter <a href="#1.4">"1.4 Ensure Data Cluster Initialized Successfully"</a>.',
 		},
 		'8.2' => {
 			'title' => 'Ensure the backup and restore tool, \'pgBackRest\', is installed and configured',
@@ -848,7 +848,7 @@ postgresql might have been installed upon a system. Unused packages can increase
 		},
 		'8.1' => {
 			'title' => 'Vérifier que les emplacements des sous-répertoires PostgreSQL se trouvent en dehors du cluster de données',
-			'description' => 'Ce rapport fait partie du chapitre "1.3 Garantir l\'initialisation réussie du cluster de données" .',
+			'description' => 'Ce rapport fait partie du chapitre <a href="#1.4">"1.4 Vérifier l\'initialisation réussie du cluster de données"</a>.',
 		},
 		'8.2' => {
 			'title' => 'Vérifier que l\'outil de sauvegarde et de restauration, \'pgBackRest\', est installé et configuré',
@@ -1254,7 +1254,7 @@ postgresql might have been installed upon a system. Unused packages can increase
 		},
 		'8.1' => {
 			'title' => '确保 PostgreSQL 子目录位置位于数据集群之外',
-			'description' => '本报告是<a href="#1.3">“1.3 确保数据集群成功初始化”</a>章的一部分。',
+			'description' => '本报告是<a href="#1.4">“1.4 确保数据集群成功初始化”</a>章的一部分。',
 		},
 		'8.2' => {
 			'title' => '确保备份和恢复工具 \'pgBackRest\' 已安装并配置',
