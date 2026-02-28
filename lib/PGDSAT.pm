@@ -466,7 +466,7 @@ sub check_1_1_1
 
 	@{ $self->{pkg_ver} } = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server" | grep -i PGDG | awk -F "-" '{print \$3}' | sort -u`;
 	if ($#{ $self->{pkg_ver} } < 0) {
-		@{ $self->{pkg_ver} } = `dpkg -l 2>/dev/null | grep -E "postgresql-[1-9]{1,2} .*pgdg" | awk '{print \$3}' | sed 's/-.*//' | sort -u`;
+		@{ $self->{pkg_ver} } = `dpkg -l 2>/dev/null | grep -E "^ii.*postgresql-[1-9]{1,2} .*pgdg" | awk '{print \$3}' | sed 's/-.*//' | sort -u`;
 	}
 	chomp(@{ $self->{pkg_ver} });
 	if ($#{ $self->{pkg_ver} } < 0) {
@@ -486,7 +486,7 @@ sub check_1_2
 
 	my @packages = `rpm -qa 2>/dev/null| grep -E "postgresql[1-9\.]{1,2}-server"`;
 	if ($#packages < 0) {
-		@packages = `dpkg -l 2>/dev/null | grep -E "postgresql-[1-9]{1,2}" | sed 's/^ii //'`;
+		@packages = `dpkg -l 2>/dev/null | grep -E "^ii.*postgresql-[1-9]{1,2}" | sed 's/^ii //'`;
 	}
 
 	if ($#packages < 0) {
@@ -503,7 +503,7 @@ sub check_1_3
 
 	my $patroni = `rpm -qa 2>/dev/null| grep "patroni"`;
 	if (!$patroni) {
-		$patroni = `dpkg -l 2>/dev/null | grep -E "patroni"`;
+		$patroni = `dpkg -l 2>/dev/null | grep -E "^ii.*patroni"`;
 	}
 	chomp($patroni);
 
@@ -749,7 +749,7 @@ sub check_1_7
 	my @ret = ();
 
 	# Verify That 'PGPASSWORD' is Not in Use
-	push(@ret, `grep PGPASSWORD /proc/*/environ`);
+	push(@ret, `grep PGPASSWORD /proc/*/environ 2>/dev/null`);
 
 	if ($#ret >= 0) {
 		$self->logmsg('1.19', 'CRITICAL', 'the PGPASSWORD environment variable is in use.');
