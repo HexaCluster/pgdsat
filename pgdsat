@@ -36,7 +36,7 @@ use PGDSAT;
 use POSIX qw(locale_h);
 use Getopt::Long qw(:config no_ignore_case bundling);
 
-$VERSION = '1.2';
+$VERSION = '2.0';
 
 setlocale(LC_NUMERIC, 'C');
 setlocale(LC_ALL,     'C');

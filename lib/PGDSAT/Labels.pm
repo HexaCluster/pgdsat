@@ -10,7 +10,7 @@ package PGDSAT::Labels;
 use vars qw($VERSION %AUDIT_LBL);
 use strict;
 
-$VERSION = '1.2';
+$VERSION = '2.0';
 
 ####
 # IMPORTANT: the item number must correspond to those displayed in the report

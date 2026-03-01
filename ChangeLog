@@ -1,3 +1,17 @@
+2026-03-01 - Version 2.0
+
+This new release adds last changes from CIS Benchmark for PostgreSQL 17 and
+fixes some issues.
+
+  - Update documentation.
+  - Remove HTML internal link in text output format.
+  - Fix internal link after moving 1.3 chapter to 1.4
+  - Fix dpkg -l output to list only installed package.
+  - Allow provide path to pg_config. Thanks to Ales Zeleny for the patch.
+  - Update with last changes in CIS Benchmark for PostgreSQL 17.
+  - Add logtext() Perl method to write a text with indentation and no other
+    formatting.
+
 2026-02-14 - Version 1.2
 
 This release fixes several issues reported by users since last release and add

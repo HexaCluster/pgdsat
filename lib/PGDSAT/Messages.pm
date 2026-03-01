@@ -10,7 +10,7 @@ package PGDSAT::Messages;
 use vars qw($VERSION %AUDIT_MSG);
 use strict;
 
-$VERSION = '1.2';
+$VERSION = '2.0';
 
 ####
 # The numbering here tries to follow the numbering in the PGDSAT::Labels file
