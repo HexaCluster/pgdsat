@@ -26,101 +26,113 @@ can see in the sample report above.
 
 ## SECURITY CHECKS
 
-All checks recommended by the CIS Benchmark for PostgreSQL 16 are implemented
+All checks recommended by the CIS Benchmark for PostgreSQL 17 are implemented
 but not only. Some additional tests not part of the CIS document are marked with
 the "(\*)" mention in the description.
 
 Here is the list all checks performed on a PostgreSQL cluster. Some must be
 checked manually but most of them are check automatically by the tool.
 
-        1 - Installation and Patches
-          1.1 - Ensure packages are obtained from authorized repositories => SUCCESS
-            1.1.1 - PostgreSQL packages installed. (Manual)
-            1.1.2 - Ensure packages are obtained from PGDG => SUCCESS
-          1.2 - Ensure systemd Service Files Are Enabled => SUCCESS
-          1.3 - Ensure Data Cluster Initialized Successfully => SUCCESS
-            1.3.1 - Check initialization of the PGDATA => SUCCESS
-            1.3.2 - Check version in PGDATA => SUCCESS
-            1.3.3 - Ensure Data Cluster have checksum enabled => FAILURE
-            1.3.4 - Ensure WALs and temporary files are not on the same partition as the PGDATA => FAILURE
-            1.3.5 - Ensure that the PGDATA partition is encrypted (Manual)
-          1.4 - Ensure PostgreSQL versions are up-to-date => FAILURE
-          1.5 - Ensure unused PostgreSQL extensions are removed (Manual)
-        2 - Directory and File Permissions
-          2.1 - Ensure the file permissions mask is correct => FAILURE
-          2.2 - Check permissions of PGDATA => SUCCESS
-          2.3 - List content of PGDATA to check unwanted files and symlinks (Manual)
-          2.4 - Check permissions of pg_hba.conf => SUCCESS
-          2.5 - Check permissions on Unix Socket => FAILURE
-        3 - Logging And Auditing
-          3.1 - PostgreSQL Logging => SUCCESS
-            3.1.1 - Logging Rationale => SUCCESS
-            3.1.2 - Ensure the log destinations are set correctly => SUCCESS
-            3.1.3 - Ensure the logging collector is enabled => FAILURE
-            3.1.4 - Ensure the log file destination directory is set correctly => SUCCESS
-            3.1.5 - Ensure the filename pattern for log files is set correctly (Manual)
-            3.1.6 - Ensure the log file permissions are set correctly => SUCCESS
-            3.1.7 - Ensure 'log_truncate_on_rotation' is enabled => SUCCESS
-            3.1.8 - Ensure the maximum log file lifetime is set correctly (Manual)
-            3.1.9 - Ensure the maximum log file size is set correctly (Manual)
-            3.1.10 - Ensure the correct syslog facility is selected (Manual)
-            3.1.11 - Ensure syslog messages are not suppressed => SUCCESS
-            3.1.12 - Ensure syslog messages are not lost due to size => SUCCESS
-            3.1.13 - Ensure the program name for PostgreSQL syslog messages is correct (Manual)
-            3.1.14 - Ensure the correct messages are written to the server log => SUCCESS
-            3.1.15 - Ensure the correct SQL statements generating errors are recorded => SUCCESS
-            3.1.16 - Ensure 'debug_print_parse' is disabled => SUCCESS
-            3.1.17 - Ensure 'debug_print_rewritten' is disabled => SUCCESS
-            3.1.18 - Ensure 'debug_print_plan' is disabled => SUCCESS
-            3.1.19 - Ensure 'debug_pretty_print' is enabled => SUCCESS
-            3.1.20 - Ensure 'log_connections' is enabled => FAILURE
-            3.1.21 - Ensure 'log_disconnections' is enabled => FAILURE
-            3.1.22 - Ensure 'log_error_verbosity' is set correctly => FAILURE
-            3.1.23 - Ensure 'log_hostname' is set correctly => SUCCESS
-            3.1.24 - Ensure 'log_line_prefix' is set correctly => FAILURE
-            3.1.25 - Ensure 'log_statement' is set correctly => FAILURE
-            3.1.26 - Ensure 'log_timezone' is set correctly => FAILURE
-            3.1.27 - Ensure that log_directory is outside the PGDATA => SUCCESS
-          3.2 - Ensure the PostgreSQL Audit Extension (pgAudit) is enabled => SUCCESS
-        4 - User Access and Authorization
-          4.1 - Ensure sudo is configured correctly (Manual)
-          4.2 - Ensure excessive administrative privileges are revoked => FAILURE
-          4.3 - Ensure excessive function privileges are revoked (Manual)
-          4.4 - Ensure excessive DML privileges are revoked (Manual)
-          4.5 - Ensure Row Level Security (RLS) is configured correctly (Manual)
-          4.6 - Ensure the set_user extension is installed (Manual) => FAILURE
-          4.7 - Make use of predefined roles (Manual)
-          4.8 - Ensuse the public schema is protected
-        5 - Connection and Login
-          5.1 - Ensure login via "local" UNIX Domain Socket is configured correctly => FAILURE
-          5.2 - Ensure login via "host" TCP/IP Socket is configured correctly => SUCCESS
-          5.3 - Ensure Password Complexity is configured => SUCCESS
-          5.4 - Ensure authentication timeout and delay are well configured => FAILURE
-          5.5 - Ensure SSL is used for client connection => FAILURE
-          5.6 - Ensure authorized Ip addresses ranges are not too large => SUCCESS
-          5.7 - Ensure specific database and users are used => FAILURE
-          5.8 - Ensure superusers are not allowed to connect remotely => SUCCESS
-          5.9 - Ensure that 'password_encryption' is correctly set => SUCCESS
-        6 - PostgreSQL Settings
-          6.1 - Understanding attack vectors and runtime parameters
-          6.2 - Ensure 'backend' runtime parameters are configured correctly => FAILURE
-          6.3 - Ensure 'Postmaster' runtime parameters are configured correctly (Manual)
-          6.4 - Ensure 'SIGHUP' runtime parameters are configured correctly (Manual)
-          6.5 - Ensure 'Superuser' runtime parameters are configured correctly (Manual)
-          6.6 - Ensure 'User' runtime parameters are configured correctly (Manual)
-          6.7 - Ensure FIPS 140-2 OpenSSL cryptography is used => FAILURE
-          6.8 - Ensure TLS is enabled and configured correctly => FAILURE
-          6.9 - Ensure a cryptographic extension is installed => SUCCESS
-        7 - Replication
-          7.1 - Ensure a replication-only user is created and used for streaming replication => FAILURE
-          7.2 - Ensure logging of replication commands is configured => FAILURE
-          7.3 - Ensure base backups are configured and functional => SUCCESS
-          7.4 - Ensure WAL archiving is configured and functional => FAILURE
-          7.5 - Ensure streaming replication parameters are configured correctly => FAILURE
-        8 - Special Configuration Considerations
-          8.1 - Ensure PostgreSQL subdirectory locations are outside the data cluster => SUCCESS
-          8.2 - Ensure the backup and restore tool, 'pgBackRest', is installed and configured => FAILURE
-          8.3 - Ensure miscellaneous configuration settings are correct (Manual)
+    1 - Installation and Patches
+      1.1 - Ensure packages are obtained from authorized repositories (Manual)
+        1.1.1 - Ensure packages are obtained from PGDG => SUCCESS
+      1.2 - Install only required packages. (Manual)
+      1.3 - Ensure systemd Service Files Are Enabled => FAILURE
+      1.4 - Ensure Data Cluster Initialized Successfully => SUCCESS
+        1.4.1 - Check initialization of the PGDATA => SUCCESS
+        1.4.2 - Check version in PGDATA => SUCCESS
+        1.4.3 - Ensure Data Cluster have checksum enabled => FAILURE
+        1.4.4 - Ensure WALs and temporary files are not on the same partition as the PGDATA => FAILURE
+        1.4.5 - Ensure that the PGDATA partition is encrypted (Manual)
+      1.5 - Ensure PostgreSQL versions are up-to-date => FAILURE
+      1.6 - Verify That PGPASSWORD is Not Set in Users' Profiles => SUCCESS
+      1.7 - Verify That the 'PGPASSWORD' Environment Variable is Not in Use => SUCCESS
+      1.8 - Ensure unused PostgreSQL extensions are removed (Manual)
+      1.9 - Ensure tablespace location is not inside the PGDATA => SUCCESS
+    2 - Directory and File Permissions
+      2.1 - Ensure the file permissions mask is correct => FAILURE
+      2.2 - Ensure extension directory has appropriate ownership and permissions => SUCCESS
+      2.3 - Disable PostgreSQL Command History => FAILURE
+      2.4 - Ensure Passwords are Not Stored in the service file => FAILURE
+      2.5 - Check permissions of pg_hba.conf => SUCCESS
+      2.6 - Check permissions on Unix Socket => FAILURE
+      2.7 - Check permissions of PGDATA => SUCCESS
+      2.8 - List content of PGDATA to check unwanted files and symlinks (Manual)
+    3 - Logging And Auditing
+      3.1 - PostgreSQL Logging => SUCCESS
+        3.1.1 - Logging Rationale => SUCCESS
+        3.1.2 - Ensure the log destinations are set correctly => SUCCESS
+        3.1.3 - Ensure the logging collector is enabled => FAILURE
+        3.1.4 - Ensure the log file destination directory is set correctly => SUCCESS
+        3.1.5 - Ensure the filename pattern for log files is set correctly (Manual)
+        3.1.6 - Ensure the log file permissions are set correctly => SUCCESS
+        3.1.7 - Ensure 'log_truncate_on_rotation' is enabled => SUCCESS
+        3.1.8 - Ensure the maximum log file lifetime is set correctly (Manual)
+        3.1.9 - Ensure the maximum log file size is set correctly (Manual)
+        3.1.10 - Ensure the correct syslog facility is selected (Manual)
+        3.1.11 - Ensure syslog messages are not suppressed => SUCCESS
+        3.1.12 - Ensure syslog messages are not lost due to size => SUCCESS
+        3.1.13 - Ensure the program name for PostgreSQL syslog messages is correct (Manual)
+        3.1.14 - Ensure the correct messages are written to the server log => SUCCESS
+        3.1.15 - Ensure the correct SQL statements generating errors are recorded => SUCCESS
+        3.1.16 - Ensure 'debug_print_parse' is disabled => SUCCESS
+        3.1.17 - Ensure 'debug_print_rewritten' is disabled => SUCCESS
+        3.1.18 - Ensure 'debug_print_plan' is disabled => SUCCESS
+        3.1.19 - Ensure 'debug_pretty_print' is enabled => SUCCESS
+        3.1.20 - Ensure 'log_connections' is enabled => FAILURE
+        3.1.21 - Ensure 'log_disconnections' is enabled => FAILURE
+        3.1.22 - Ensure 'log_error_verbosity' is set correctly => FAILURE
+        3.1.23 - Ensure 'log_hostname' is set correctly => SUCCESS
+        3.1.24 - Ensure 'log_line_prefix' is set correctly => FAILURE
+        3.1.25 - Ensure 'log_statement' is set correctly => FAILURE
+        3.1.26 - Ensure 'log_timezone' is set correctly => FAILURE
+        3.1.27 - Ensure that log_directory is outside the PGDATA => SUCCESS
+      3.2 - Ensure the PostgreSQL Audit Extension (pgAudit) is enabled => SUCCESS
+    4 - User Access and Authorization
+      4.1 - Ensure Interactive Login is Disabled => SUCCESS
+      4.2 - Ensure sudo is configured correctly (Manual)
+      4.3 - Ensure excessive administrative privileges are revoked => FAILURE
+      4.4 - Lock Out Accounts if Not Currently in Use (Manual)
+      4.5 - Ensure excessive function privileges are revoked (Manual)
+      4.6 - Ensure excessive DML privileges are revoked (Manual)
+      4.7 - Ensure Row Level Security (RLS) is configured correctly (Manual)
+      4.8 - Ensure the set_user extension is installed (Manual) => FAILURE
+      4.9 - Make use of predefined roles (Manual)
+      4.10 - Ensure the public schema is protected => FAILURE
+    5 - Connection and Login
+      5.1 - Do Not Specify Passwords in the Command Line => SUCCESS
+      5.2 - Ensure PostgreSQL is Bound to an IP Address => SUCCESS
+      5.3 - Ensure login via "local" UNIX Domain Socket is configured correctly => SUCCESS
+      5.4 - Ensure login via "host" TCP/IP Socket is configured correctly => SUCCESS
+      5.5 - Ensure per-account connection limits are used => FAILURE
+      5.6 - Ensure Password Complexity is configured => SUCCESS
+      5.7 - Ensure authentication timeout and delay are well configured => FAILURE
+      5.8 - Ensure SSL is used for client connection => FAILURE
+      5.9 - Ensure authorized Ip addresses ranges are not too large => SUCCESS
+      5.10 - Ensure specific database and users are used => SUCCESS
+      5.11 - Ensure superusers are not allowed to connect remotely => SUCCESS
+      5.12 - Ensure that 'password_encryption' is correctly set => SUCCESS
+    6 - PostgreSQL Settings
+      6.1 - Understanding attack vectors and runtime parameters (Manual)
+      6.2 - Ensure 'backend' runtime parameters are configured correctly => FAILURE
+      6.3 - Ensure 'Postmaster' runtime parameters are configured correctly (Manual)
+      6.4 - Ensure 'SIGHUP' runtime parameters are configured correctly (Manual)
+      6.5 - Ensure 'Superuser' runtime parameters are configured correctly (Manual)
+      6.6 - Ensure 'User' runtime parameters are configured correctly (Manual)
+      6.7 - Ensure FIPS 140-2 OpenSSL cryptography is used => FAILURE
+      6.8 - Ensure TLS is enabled and configured correctly => FAILURE
+      6.9 - Ensure a cryptographic extension is installed => SUCCESS
+      6.10 - Ensure Weak SSL/TLS Ciphers Are Disabled => FAILURE
+      6.11 - Ensure a data anonymization extension is installed => FAILURE
+    7 - Replication
+      7.1 - Ensure a replication-only user is created and used for streaming replication => FAILURE
+      7.2 - Ensure logging of replication commands is configured => FAILURE
+      7.3 - Ensure base backups are configured and functional => SUCCESS
+      7.4 - Ensure WAL archiving is configured and functional => FAILURE
+      7.5 - Ensure streaming replication parameters are configured correctly => FAILURE
+    8 - Special Configuration Considerations
+      8.1 - Ensure PostgreSQL subdirectory locations are outside the data cluster => SUCCESS
+      8.2 - Ensure the backup and restore tool, 'pgBackRest', is installed and configured => FAILURE
 
 ## REQUIREMENT
 
